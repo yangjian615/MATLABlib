@@ -1,0 +1,29 @@
+function rotated_vectors = rotate_vector_array(matrix, vector_array)
+
+    % Make sure the vectors are along the rows.
+    vsize = size(vector_array);
+    if vsize(1) == 3 && vsize(2) ~= 3
+        vector_array = vector_array';
+    end
+
+    % Allocate memory for the rotated vectors
+    rotated_vectors = zeros(size(vector_array));
+    
+    % Compute the x-component of the rotated vector.
+    rotated_vectors(:, 1) = ...
+        matrix(1,1) * vector_array(:,1) + ...
+        matrix(1,2) * vector_array(:,2) + ...
+        matrix(1,3) * vector_array(:,3);
+    
+    % Compute the y-component of the rotated vector.
+    rotated_vectors(:, 2) = ...
+        matrix(2,1) * vector_array(:,1) + ...
+        matrix(2,2) * vector_array(:,2) + ...
+        matrix(2,3) * vector_array(:,3);
+    
+    % Compute the z-component of the rotated vector.
+    rotated_vectors(:, 3) = ...
+        matrix(3,1) * vector_array(:,1) + ...
+        matrix(3,2) * vector_array(:,2) + ...
+        matrix(3,3) * vector_array(:,3);
+end
