@@ -144,6 +144,7 @@ function [regex] = MrTokens_ToRegex(pattern)
 			
 			% Move to the next token
 			if ii < nTokens
+				pre  = [pre post(iend(ii)+1:istart(ii+1)-1)];
 				post = post(istart(ii+1):end);
 			end
 		end

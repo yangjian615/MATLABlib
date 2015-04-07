@@ -30,25 +30,63 @@ function rotvec = mrvector_rotate(mat, vec)
 	vecsize = size(vec);
 	matdims = length(matsize);
 	vecdims = length(vecsize);
-	
-	% Allocate memory to output
-	rotvec = zeros(vecsize);
-	
-	% 3x3xN * 3xN
-	if matdims == 3 && vecdims == 2 && matsize(3) == vecsize(2)
+
+%------------------------------------%
+% 3x3xN * 1x3 or 3x1                 %
+%------------------------------------%
+	if matdims == 3 && matdims == 3 && ( vecsize(1) == 1 || vecsize(2) == 1 )
+		% Must permute the dimensions first
+		mat = permute(mat, [1,3,2]);
+
+		% Multiply
+		rotvec      = zeros(3, matsize(3));
+		rotvec(1,:) = mat(1,:,1) .* vec(1) + mat(1,:,2) .* vec(2) + mat(1,:,3) .* vec(3);
+		rotvec(2,:) = mat(2,:,1) .* vec(1) + mat(2,:,2) .* vec(2) + mat(2,:,3) .* vec(3);
+		rotvec(3,:) = mat(3,:,1) .* vec(1) + mat(3,:,2) .* vec(2) + mat(3,:,3) .* vec(3);
+
+%------------------------------------%
+% 3x3xN * 3xN                        %
+%------------------------------------%
+	elseif matdims == 3 && matsize(1) == 3 && matsize(2) == 3 && matsize(3) == vecsize(2) && vecsize(1) == 3
 		% Must permute the dimensions first
 		mat = permute(mat, [1,3,2]);
 		
 		% Multiply
+		rotvec      = zeros( vecsize );
 		rotvec(1,:) = mat(1,:,1) .* vec(1,:) + mat(1,:,2) .* vec(2,:) + mat(1,:,3) .* vec(3,:);
 		rotvec(2,:) = mat(2,:,1) .* vec(1,:) + mat(2,:,2) .* vec(2,:) + mat(2,:,3) .* vec(3,:);
 		rotvec(3,:) = mat(3,:,1) .* vec(1,:) + mat(3,:,2) .* vec(2,:) + mat(3,:,3) .* vec(3,:);
+
+%------------------------------------%
+% 3x3xN * Nx3                        %
+%------------------------------------%
+	elseif matdims == 3 && matsize(1) == 3 && matsize(2) == 3 && matsize(3) == vecsize(1) && vecsize(2) == 3
+		% Must permute the dimensions first
+		mat = permute(mat, [3,1,2]);
+		
+		% Multiply
+		rotvec      = zeros( vecsize );
+		rotvec(:,1) = mat(:,1,1) .* vec(:,1) + mat(:,1,2) .* vec(:,2) + mat(:,1,3) .* vec(:,2);
+		rotvec(:,2) = mat(:,2,1) .* vec(:,1) + mat(:,2,2) .* vec(:,2) + mat(:,2,3) .* vec(:,2);
+		rotvec(:,3) = mat(:,3,1) .* vec(:,1) + mat(:,3,2) .* vec(:,2) + mat(:,3,3) .* vec(:,2);
 	
-	% 3x3 * 3xN
-	elseif matdims == 2 && vecdims == 2 && vecsize(1) == 3
+%------------------------------------%
+% 3x3 * 3xN                          %
+%------------------------------------%
+	elseif matsize(1) == 3 && matsize(2) == 3 && vecsize(1) == 3
+		rotvec      = zeros( vecsize );
 		rotvec(1,:) = mat(1,1) .* vec(1,:) + mat(1,2) .* vec(2,:) + mat(1,3) .* vec(3,:);
 		rotvec(2,:) = mat(2,1) .* vec(1,:) + mat(2,2) .* vec(2,:) + mat(2,3) .* vec(3,:);
 		rotvec(3,:) = mat(3,1) .* vec(1,:) + mat(3,2) .* vec(2,:) + mat(3,3) .* vec(3,:);
+
+%------------------------------------%
+% 3x3 * Nx3                          %
+%------------------------------------%
+	elseif matsize(1) == 3 && matsize(2) == 3 && vecsize(2) == 3
+		rotvec      = zeros( vecsize );
+		rotvec(:,1) = mat(1,1) .* vec(:,1) + mat(1,2) .* vec(:,2) + mat(1,3) .* vec(:,3);
+		rotvec(:,2) = mat(2,1) .* vec(:,1) + mat(2,2) .* vec(:,2) + mat(2,3) .* vec(:,3);
+		rotvec(:,3) = mat(3,1) .* vec(:,1) + mat(3,2) .* vec(:,2) + mat(3,3) .* vec(:,3);
 	
 	% Otherwise
 	else
