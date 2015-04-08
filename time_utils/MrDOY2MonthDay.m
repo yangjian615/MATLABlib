@@ -11,7 +11,8 @@
 %     assumed.
 %
 %   [MONTH, DAY] = MrDOY2MonthDay(DOY, YEAR)
-%     Provide the YEAR to account for leap days.
+%     Provide the YEAR to account for leap days. If YEAR is not double
+%     precision, it will be converted to a double.
 %
 % Parameters
 %   DOY               in, required, type = number
@@ -42,10 +43,19 @@ function [month, day] = MrDOY2MonthDay(doy, year)
 
 	% Number of DOYs given
 	nDOY = length(doy);
-
+		
 	% Assume non leap year.
 	if nargin < 2
 		year = zeros(1, nDOY) + 2001;
+	else
+		% Year must be converted to double precision or DATENUM will fail
+		if ~isa(year, 'double')
+			try
+				year = double(year);
+			catch EM
+				error( 'YEAR must be convertible to a double precision number.' )
+			end
+		end
 	end
 	
 	% Convert year to a MATLAB datenum

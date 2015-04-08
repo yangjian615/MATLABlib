@@ -1,41 +1,17 @@
 %
 % Name
-%   MrLS
+%   MrFile_Search
 %
 % Purpose
-%   Get the current directory listing.
+%   Find files in the file system. File and directory names can include any
+%   tokens recognized by MrTokens.
 %
 % Calling Sequence
-%   MrLS
-%     Print the contents of the current directory to the command window.
-%
-%   MrLS('ParamName', ParamValue);
-%     Filter the contents of the directory with any param-value pair listed
-%     below, then print to command window.
-%
-%   NAMES = MrLS(__);
-%     Instead of printing to the display, return directory listing as a
-%     cell array of strings.
-%
-%   [NAMES, COUNT] = MrLS(__);
-%     Also return the number of items found.
+%   FILENAMES = MrFile_Search(PATTERN)
+%     Find all file names that match the filepath pattern PATTERN.
 %
 % Parameters
-%   'Directories':      in, optional, type=boolean
-%                       If true, only directories will be returned. Files
-%                         are excluded from results.
-%   'Files':            in, optional, type=boolean
-%                       If true, only files will be returned. Directories
-%                         are excluded from results.
-%   'MarkDirectories':  in, optional, type=boolean
-%                       If set, directories will be marked with a trailing
-%                         file separator.
-%   'MatchString':      in, optional, type=1xN char
-%                       A string used with the strmatch() function to
-%                         filter results.
-%   'Regex':            in, optional, type=1xN char
-%                       A string used with the regexp() function to filter
-%                         results.
+%   PATTERN:        in, optional, type=char
 %
 % Returns
 %   NAMES:          out, optional, type=1XN cell
@@ -47,7 +23,7 @@
 % History:
 %   2015-04-01      Written by Matthew Argall
 %
-function [tree, count] = MrFile_Search(pattern)
+function [tree, count] = MrFile_Finder(pattern)
 
 	% Current path
 	path    = pwd();

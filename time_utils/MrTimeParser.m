@@ -170,47 +170,47 @@ function time_parts = MrTimeParser_Breakdown(time, pattern)
 	for ii = 1 : nTokens
 		switch tokens{ii}
 			case '%Y'
-				year = parts{:, ii};
+				year      = parts(:, ii)';
 			case '%y'
-				yr = parts{:, ii};
+				yr        = parts(:, ii)';
 			case '%D'
-				doy = parts{:, ii};
+				doy       = parts(:, ii)';
 			case '%M'
-				month = parts{:, ii};
+				month     = parts(:, ii)';
 			case '%C'
-				cmonth = parts{:, ii};
+				cmonth    = parts(:, ii)';
 			case '%c'
-				calmo = parts{:, ii};
+				calmo     = parts(:, ii)';
 			case '%d'
-				day = parts{:, ii};
+				day       = parts(:, ii)';
 			case '%W'
-				weekday = parts{:, ii};
+				weekday   = parts(:, ii)';
 			case '%w'
-				wkday = parts{:, ii};
+				wkday     = parts(:, ii)';
 			case '%H'
-				hour = parts{:, ii};
+				hour      = parts(:, ii)';
 			case '%h'
-				hr = parts{:, ii};
+				hr        = parts(:, ii)';
 			case '%m'
-				minute = parts{:, ii};
+				minute    = parts(:, ii)';
 			case '%S'
-				second = parts{:, ii};
+				second    = parts(:, ii)';
 			case '%f'
-				decimal = parts{:, ii};
+				decimal   = parts(:, ii)';
 			case '%1'
-				milli = parts{:, ii};
+				milli     = parts(:, ii)';
 			case '%2'
-				micro = parts{:, ii};
+				micro     = parts(:, ii)';
 			case '%3'
-				nano = parts{:, ii};
+				nano      = parts(:, ii)';
 			case '%4'
-				pico = parts{:, ii};
+				pico      = parts(:, ii)';
 			case '%A'
-				am_pm = parts{:, ii};
+				am_pm     = parts(:, ii)';
 			case '%o'
-				offset = parts{:, ii};
+				offset    = parts(:, ii)';
 			case '%z'
-				time_zone = parts{:, ii};
+				time_zone = parts(:, ii)';
 			otherwise
 				error( ['Unrecognized token: "' tokens{ii} '".'] );
 		end
@@ -347,11 +347,11 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 					elseif ~isempty(time_parts(1).doy)
 						% Try to use year information
 						if ~isempty(time_parts(1).year)
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
 						elseif ~isempty(time_parts(1).yr)
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
 						else
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy } );
 						end
 					else
 						error( 'Cannot form %M. Need %M, %C, %c, or %D.' );
@@ -384,11 +384,11 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 					elseif ~isempty(time_parts(1).doy)
 						% Try to use year information
 						if ~isempty(time_parts(1).year)
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
 						elseif ~isempty(time_parts(1).yr)
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
 						else
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy } );
 						end
 						
 						% Convert from month number to month name
@@ -424,11 +424,11 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 					elseif ~isempty(time_parts(1).doy)
 						% Try to use year information
 						if ~isempty(time_parts(1).year)
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
 						elseif ~isempty(time_parts(1).yr)
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
 						else
-							month = MrTImeParser_doy2monthday( { time_parts(:).doy } );
+							month = MrTimeParser_doy2monthday( { time_parts(:).doy } );
 						end
 						
 						% Convert from month number to an abbreviated month name
@@ -456,11 +456,11 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 					
 					% Try to use year information
 					if ~isempty(time_parts(1).year)
-						[~, day] = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
+						[~, day] = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).year } );
 					elseif ~isempty(time_parts(1).yr)
-						[~, day] = MrTImeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
+						[~, day] = MrTimeParser_doy2monthday( { time_parts(:).doy }, { time_parts(:).yr } );
 					else
-						[~, day] = MrTImeParser_doy2monthday( { time_parts(:).doy } );
+						[~, day] = MrTimeParser_doy2monthday( { time_parts(:).doy } );
 					end
 				end
 				
@@ -528,6 +528,11 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 				% If the day of year is not available
 				%   - Try to create it from a 12-hour clock time
 				if isempty(hour{1}) && ~isempty( time_parts(1).hr )
+					if isempty(time_parts(1).hr)
+						error( 'Cannot form %H. Need %H or %h (with %A)' );
+					end
+					
+					
 					hour  = { time_parts(:).hr };
 					nHour = length(hour);
 					
@@ -568,8 +573,6 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 					fmt_cell    = cell(1, nHour);
 					fmt_cell(:) = {'%02d'};
 					hour        = cellfun(num2str, hour, fmt_cell);
-				else
-					error( 'Cannot form %H. Need %H or %h (with %A)' );
 				end
 					
 				subStr = hour;
@@ -792,8 +795,9 @@ function [month, day] = MrTimeParser_doy2monthday(doy, year)
 	end
 	
 	% Convert from cell array of strings to numeric arrays
-	doy  = cellfun(@str2num, strcat( {'int32{'}, doy,  {')'} ) );
-	year = cellfun(@str2num, strcat( {'int32{'}, year, {')'} ) );
+	%   - MrDOY2MonthDay takes doubles
+	doy  = cellfun(@str2num, strcat( {'double('}, doy,  {')'} ) );
+	year = cellfun(@str2num, strcat( {'double('}, year, {')'} ) );
 
 	% Convert to month and day
 	[month, day] = MrDOY2MonthDay(doy, year);
@@ -801,15 +805,15 @@ function [month, day] = MrTimeParser_doy2monthday(doy, year)
 	% Convert to a cell array of strings
 	month       = num2cell( month );
 	fmt_cell    = cell(1, nDOY);
-	fmt_cell(:) = {'%04d'};
-	month       = cellfun(@num2str, month, fmt_cell);
+	fmt_cell(:) = {'%02d'};
+	month       = cellfun(@num2str, month, fmt_cell, 'UniformOutput', false);
 	
 	% Do the same for DAY.
 	if nargout == 2
 		day         = num2cell( day );
 		fmt_cell    = cell(1, nDOY);
 		fmt_cell(:) = {'%02d'};
-		day         = cellfun(@num2str, day, fmt_cell);
+		day         = cellfun(@num2str, day, fmt_cell, 'UniformOutput', false);
 	end
 end
 
