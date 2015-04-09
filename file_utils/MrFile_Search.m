@@ -1,9 +1,9 @@
 %
 % Name
-%   mms_file_search
+%   MrFile_Search
 %
 % Purpose
-%   Find MMS data files.
+%   Find files on the file system. Filter by time interval and version.
 %
 % Calling Sequence
 %   FILES = MrFile_Search(FILENAME)
@@ -91,8 +91,8 @@
 %     /Users/argall/Documents/Work/Data/Cluster/20040406_030000_060000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20040406_030000_20040406_060000_V080213.cdf
 %
 %   1. Find the newest verion of each file
-%     >> files   = MrFile_Search_Filter(pattern, ...
-%                                       'VersionRegex', vRegex);
+%     >> files   = MrFile_Search(pattern, ...
+%                                'VersionRegex', vRegex);
 %     >> vertcat(files{:})
 %       /Users/argall/Documents/Work/Data/Cluster/20010705_060000_070000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20010705_060000_20010705_070000_V080206.cdf
 %       /Users/argall/Documents/Work/Data/Cluster/20020318_143000_153000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20020318_143000_20020318_153000_V080213.cdf
@@ -100,17 +100,19 @@
 %       /Users/argall/Documents/Work/Data/Cluster/20040406_030000_060000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20040406_030000_20040406_060000_V080213.cdf
 %
 %   2. Find files that begin at or before 2004-03-25T07:30:00Z
-%     >> files = mms_file_search('mms2', 'scm', 'comm', 'l1a', ...
-%                                'TStart',    '2004-03-25T07:30:00Z');
+%     >> files   = MrFile_Search(pattern,                                ...
+%                                'TStart',       '2004-03-25T07:30:00Z', ...
+%                                'VersionRegex', vRegex);;
 %     >> vertcat(files{:})
 %       /Users/argall/Documents/Work/Data/Cluster/20010705_060000_070000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20010705_060000_20010705_070000_V080206.cdf
 %       /Users/argall/Documents/Work/Data/Cluster/20020318_143000_153000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20020318_143000_20020318_153000_V080213.cdf
 %       /Users/argall/Documents/Work/Data/Cluster/20040325_073000_090000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20040325_073000_20040325_090000_V080213.cdf
 %
 %   3. Also exclude files that end before 2004-03-26T00:00:00Z
-%     >> files = mms_file_search('mms2', 'scm', 'comm', 'l1a',        ...
-%                                'TStart',    '2004-03-25T07:30:00Z', ...
-%                                'TEnd',      '2004-03-26T00:00:00Z');
+%     >> files   = MrFile_Search(pattern,                                ...
+%                                'TStart',       '2004-03-25T07:30:00Z', ...
+%                                'TEnd',         '2004-03-26T00:00:00Z', ...
+%                                'VersionRegex', vRegex);
 %     >> vertcat(files{:})
 %       /Users/argall/Documents/Work/Data/Cluster/20040325_073000_090000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20040325_073000_20040325_090000_V080213.cdf
 %
