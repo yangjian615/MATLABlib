@@ -55,6 +55,14 @@
 %     >> timeOut = MrTimeParser('2012-03-01', '%Y-%M-%d', '%Y-%D')
 %       timeOut = '2012-061'
 %
+%   Convert milli/micro/nano/pico to decimal seconds:
+%     >> timeOut = MrTimeParser('00.123456789012', '%S.%1%2%3%4', '%S%f')          
+%       timeOut = '00.123456789012'
+%
+%   Convert decimal seconds to milli/micro/nano/pico:
+%     >> timeOut = MrTimeParser('00.123456789', '%S%f', '%S.%1%2%3%4')          
+%       timeOut = '00.123456789000'
+%
 % Helper Functions
 %   MrTimeParser_doy2monthday
 %   MrTimeParser_monthday2doy
@@ -79,7 +87,6 @@ function [result] = MrTimeParser(time, patternIn, patternOut)
 		result = MrTimeParser_Compute(result, patternOut);
 	end
 end
-
 
 
 %
@@ -243,7 +250,6 @@ function time_parts = MrTimeParser_Breakdown(time, pattern)
 end
 
 
-
 %
 % Name
 %   MrTimeParser_Compute
@@ -269,6 +275,7 @@ end
 %
 % History:
 %   2015-04-06      Written by Matthew Argall
+%   2015-04-09      Incorporated %f, %1, %2, %3, and %4 tokens. - MRA
 %
 function time = MrTimeParser_Compute(time_parts, pattern)
 
@@ -643,6 +650,155 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 				subStr = second;
 
 		%------------------------------------%
+		% Decimal Seconds                    %
+		%------------------------------------%
+			case '%f'
+				% Extract into a cell array
+				decimal = { time_parts(:).decimal };
+				
+				% Seconds cannot be built from anything else.
+				if isempty(decimal{1})
+					% Are milliseconds available?
+					if isempty( time_parts(1).milli )
+						decimal = '000';
+					else
+						decimal = strcat( { time_parts(:).milli }, '000');
+						decimal = cellfun(@(v) v(1:3), decimal, 'UniformOutput', false);
+					end
+					
+					% Are microseconds available?
+					%   - Should be available only if milli is available.
+					if ~isempty( time_parts(1).micro )
+						decimal = strcat( decimal, { time_parts(:).micro }, '000');
+						decimal = cellfun(@(v) v(1:6), decimal, 'UniformOutput', false);
+					end
+					
+					% Are nanoseconds available?
+					%   - Should be available only if micro is available.
+					if ~isempty( time_parts(1).nano )
+						decimal = strcat( decimal, { time_parts(:).nano }, '000');
+						decimal = cellfun(@(v) v(1:9), decimal, 'UniformOutput', false);
+					end
+					
+					% Are picoseconds available?
+					%   - Should be available only if nano is available.
+					if ~isempty( time_parts(1).pico )
+						decimal = strcat( decimal, { time_parts(:).pico }, '000');
+						decimal = cellfun(@(v) v(1:12), decimal, 'UniformOutput', false);
+					end
+				end
+					
+				subStr = strcat('.', decimal);
+
+		%------------------------------------%
+		% Milliseconds                       %
+		%------------------------------------%
+			case '%1'
+				% Extract into a cell array
+				milli = { time_parts(:).milli };
+				
+				% Try to build it from decimal seconds.
+				if isempty(milli{1})
+					% Default to '000' milli-seconds
+					if isempty( time_parts(1).decimal )
+						milli = '000';
+						
+					% Otherwise make sure decimal has at least 3 digits
+					else
+						decimal = strcat( { time_parts(:).decimal }, '000' );
+						milli   = cellfun(@(v) v(1:3), decimal, 'UniformOutput', false);
+					end
+					
+				% Make sure milli has exactly 3 digits
+				else
+					milli = strcat(milli, '000');
+					milli = cellfun(@(v) v(1:3), milli, 'UniformOutput', false);
+				end
+					
+				subStr = milli;
+
+		%------------------------------------%
+		% Microseconds                       %
+		%------------------------------------%
+			case '%2'
+				% Extract into a cell array
+				micro = { time_parts(:).micro };
+				
+				% Try to build it from decimal seconds.
+				if isempty(micro{1})
+					% Default to '000' milli-seconds
+					if isempty( time_parts(1).decimal )
+						micro = '000';
+						
+					% Otherwise make sure decimal has at least 6 digits
+					else
+						decimal = strcat( { time_parts(:).decimal }, '000000' );
+						micro   = cellfun(@(v) v(4:6), decimal, 'UniformOutput', false);
+					end
+					
+				% Make sure milli has exactly 3 digits
+				else
+					micro = strcat(micro, '000');
+					micro = cellfun(@(v) v(1:3), micro, 'UniformOutput', false);
+				end
+					
+				subStr = micro;
+
+		%------------------------------------%
+		% Nanoseconds                        %
+		%------------------------------------%
+			case '%3'
+				% Extract into a cell array
+				nano = { time_parts(:).nano };
+				
+				% Try to build it from decimal seconds.
+				if isempty(nano{1})
+					% Default to '000' milli-seconds
+					if isempty( time_parts(1).decimal )
+						nano = '000';
+						
+					% Otherwise make sure decimal has at least 9 digits
+					else
+						decimal = strcat( { time_parts(:).decimal }, '000000000' );
+						nano   = cellfun(@(v) v(7:9), decimal, 'UniformOutput', false);
+					end
+					
+				% Make sure milli has exactly 3 digits
+				else
+					nano = strcat(nano, '000');
+					nano = cellfun(@(v) v(1:3), nano, 'UniformOutput', false);
+				end
+					
+				subStr = nano;
+
+		%------------------------------------%
+		% Picoseconds                        %
+		%------------------------------------%
+			case '%4'
+				% Extract into a cell array
+				pico = { time_parts(:).pico };
+				
+				% Try to build it from decimal seconds.
+				if isempty(pico{1})
+					% Default to '000' milli-seconds
+					if isempty( time_parts(1).decimal )
+						pico = '000';
+						
+					% Otherwise make sure decimal has at least 12 digits
+					else
+						decimal = strcat( { time_parts(:).decimal }, '000000000000' );
+						pico   = cellfun(@(v) v(10:12), decimal, 'UniformOutput', false);
+					end
+					
+				% Make sure milli has exactly 3 digits
+				else
+					pico = strcat(pico, '000');
+					pico = cellfun(@(v) v(1:3), pico, 'UniformOutput', false);
+				end
+					
+				subStr = pico;
+
+		%------------------------------------%
 		% Token Not Recognized               %
 		%------------------------------------%
 			% Token not recognized
@@ -816,7 +972,6 @@ function [month, day] = MrTimeParser_doy2monthday(doy, year)
 		day         = cellfun(@num2str, day, fmt_cell, 'UniformOutput', false);
 	end
 end
-
 
 
 %
