@@ -10,9 +10,11 @@
 %     Determining header information works if the delimiter between
 %     words in the header (whitespace) is the same as the delimiter between
 %     columns (again, whitespace). If this is not the case, specify
-%     'nHeader' or 'DataStart'.
+%     'nHeader' or 'DataStart' along with 'ColumnNames', 'ColumnTypes',
+%     and/or 'Groups'.
 %
-%     If the file has a footer, it is not removed from the data.
+%     The footer is removed after reading through to the end of the file.
+%     This could cause problems.
 %
 % Calling Sequence
 %   DATA = MrFile_Read_Ascii(FILENAME)
@@ -45,6 +47,10 @@
 %   'nHeader'       in, optional, type=integer, default=0
 %                   Number of header lines in the file. It is assumed that
 %                     nHeader = DataStart - 1;
+%   'nFooter'       in, optional, type=integer, default=0
+%                   Number of footer lines in the file. Footer lines are
+%                     removed from the data AFTER reading to the end of the
+%                     file. This may or may not cause problems.
 %   'Delimiter'     in, optional, type=char, default='\n,\b, '
 %                   A comma-separated list of characters that represent
 %                     delimiters between data columns.
@@ -92,30 +98,30 @@
 %
 %   2. Specify Groups
 %     >> groups = [1,2,3,3,3,3,4,4,4,4,5,5,5,6,6,6,7,7,7,8,9];
-%     >> data   = MrFile_Read_Ascii(filename, 'Groups', groups)
-%      data = Column1:  {{274637x1 cell}}
-%             Column2:  {[274637x1 double]}
-%             Column6:  {[274637x4 double]}
-%             Column10: {[274637x4 double]}
-%             Column13: {[274637x3 double]}
-%             Column16: {[274637x3 double]}
-%             Column19: {[274637x3 double]}
-%             Column20: {[274637x1 double]}
-%             Column21: {{274637x1 cell}}
+%     >> data = MrFile_Read_Ascii(filename, 'Groups', groups)
+%      data =     Column1: {274637x1 cell}
+%                 Column2: [274637x1 double]
+%                 Column3: [274637x4 double]
+%                 Column4: [274637x4 double]
+%                 Column5: [274637x3 double]
+%                 Column6: [274637x3 double]
+%                 Column7: [274637x3 double]
+%                 Column8: [274637x1 double]
+%                 Column9: {274637x1 cell}
 %
 %   3. Specify names
 %     >> column_names = {'UTC', 'TAI', 'q', 'q', 'q', 'q', 'w', 'w', 'w', 'w', ...
 %                        'z', 'z', 'z', 'L', 'L', 'L', 'P', 'P', 'P', 'Nut', 'QF'}
-%     >> data   = MrFile_Read_Ascii(filename, 'ColumnNames', column_names)
-%      data =           L: {[274637x3 double]}
-%                     Nut: {[274637x1 double]}
-%                       P: {[274637x3 double]}
-%                      QF: {{274637x1 cell}}
-%                     TAI: {[274637x1 double]}
-%                     UTC: {{274637x1 cell}}
-%                       q: {[274637x4 double]}
-%                       w: {[274637x4 double]}
-%                       z: {[274637x3 double]}
+%     >> data = MrFile_Read_Ascii(filename, 'ColumnNames', column_names)
+%      data =    UTC: {274637x1 cell}
+%                TAI: [274637x1 double]
+%                  q: [274637x4 double]
+%                  w: [274637x4 double]
+%                  z: [274637x3 double]
+%                  L: [274637x3 double]
+%                  P: [274637x3 double]
+%                Nut: [274637x1 double]
+%                 QF: {274637x1 cell}
 %
 %   4. Specify data types
 %     >> column_names = {'UTC', 'TAI', 'q', 'q', 'q', 'q', 'w', 'w', 'w', 'w', ...
@@ -125,21 +131,22 @@
 %                        'single', 'single', 'single', 'single', 'single', 'single', ...
 %                        'single', 'single', 'single', 'single', 'char'}
 %     >> data = MrFile_Read_Ascii(filename, 'ColumnNames', column_names)
-%      data =      L: {[274637x3 single]}
-%                Nut: {[274637x1 single]}
-%                  P: {[274637x3 single]}
-%                 QF: {{274637x1 cell}}
+%      data =    UTC: {{274637x1 cell}}
 %                TAI: {[274637x1 double]}
-%                UTC: {{274637x1 cell}}
 %                  q: {[274637x4 single]}
 %                  w: {[274637x4 single]}
 %                  z: {[274637x3 single]}
+%                  L: {[274637x3 single]}
+%                  P: {[274637x3 single]}
+%                Nut: {[274637x1 single]}
+%                 QF: {{274637x1 cell}}
 %
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
 %
 % History:
 %   2015-04-09      Written by Matthew Argall
+%   2015-04-10      Field names are returned in same order as column names. - MRA
 %
 function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 
@@ -154,8 +161,8 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 	delimiter    = '\t, ,\b';
 	fmt          = '';
 	groups       = [];
-	nHeader      = [];
 	nFooter      = 0;
+	nHeader      = [];
 
 	% Check for optional arguments
 	nOptArgs = length(varargin);
@@ -176,7 +183,7 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 			case 'Groups'
 				groups       = varargin{ii+1};
 			case 'nFooter'
-				nHeader      = varargin{ii+1};
+				nFooter      = varargin{ii+1};
 			case 'nHeader'
 				nHeader      = varargin{ii+1};
 			otherwise
@@ -210,7 +217,12 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 		end
 	end
 	
-	% Get information about the file.
+	% Get information about the file. Read info if we need
+	%   - Output
+	%   - Number of columns
+	%   - Number of lines
+	%   - Number of header lines
+	%   - Data types of each column
 	if nargout > 1 || nColumns == 0 || ( isempty(data_start) && isempty(nHeader) ) || isempty(column_types)
 		info = MrFile_Read_Ascii_Info(filename, delimiter, nHeader);
 		
@@ -235,14 +247,8 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 		end
 	end
 	
-	% Check header and data information
-	%   - If nHeader and data_start were omitted, assume no header
-	%   - Otherwise
-	%       nHeader    = data_start + 1
-	%       data_start = nHeader    - 1
-	if isempty(data_start);
-		data_start = nHeader + 1;
-	elseif isempty(nHeader)
+	% Was data_start given instead?
+	if isempty(nHeader)
 		nHeader = data_start - 1;
 	end
 	
@@ -252,7 +258,6 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 	if nHeader < 0
 		warning( 'MrFile_Read:HeaderInfo', 'Cannot determine number of header lines. Assuming nHeader = 0.')
 		nHeader    = 0;
-		data_start = 1;
 	end
 	
 	% Column types
@@ -297,6 +302,21 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 		end
 	end
 	
+	%
+	% NOTE:
+	%   It may be faster to read each line individually. I have not figured
+	%   out how to do that. My attempts to use fscanf() failed because it
+	%   requires the format spec to be exactly the same as the data and, as
+	%   far as I can tell, does not permit multiple data types.
+	%
+	%   MrFile_Read_Ascii_Info() contains a code block to determine the total
+	%   number of lines. 'nLines' can be an optional parameter name. If not
+	%   given, MrFile_Read_Ascii_Info will determine it. Then, with nHeader,
+	%   nLines, and nFooter, all data can be captured.
+	%
+	%   See MrFile_Read_Ascii_GetData (below) for my latest attempt.
+	%
+	
 	% Open the file
 	fileID = fopen(filename);
 
@@ -306,8 +326,8 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
                   'Delimiter',           delimiter, ...
                   'HeaderLines',         nHeader,   ...
                   'MultipleDelimsAsOne', true);
-	
-	% Close the file
+
+								% Close the file
 	fclose(fileID);
 
 %------------------------------------%
@@ -334,12 +354,21 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 	%   - Create groups from the unique column names.
 	if isempty(groups)
 		% Find unique columns
+		%   - UNAMES( ICOL ) reproduces COLUMN_NAMES (unsorted).
+		%   - COLUMN_NAMES( IUNIQ ) reporduces UNAMES (sorted).
+		%   - COLUMN_NAMES( IUNIQ ( ICOL ) ) reproduces COLUMN_NAMES (unsorted)
 		[~, iUniq, iCol] = unique(column_names);
+		
+		% Keep output order the same as input order.
+		%   - IUNIQ are indices of the unique, sorted elements of COLUMN_NAMES.
+		%   - Sort IUNIQ so that UNAMES( IUNIQ ) are the uniq names in unsorted
+		%       order.
+		siUniq = sort(iUniq);
 		
 		% Step through each unique value
 		groups = zeros(1, nColumns);
 		for ii = 1 : length(iUniq)
-			groups( iUniq(iCol) == iUniq(ii) ) = ii;
+			groups( iUniq(iCol) == siUniq(ii) ) = ii;
 		end
 	end
 
@@ -350,13 +379,19 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 	[~, iUniq, iGroup] = unique(groups);
 	nUniq              = length(iUniq);
 	
+	% Concatenate the data into their groups.
 	dataOut = struct();
 	for ii = 1 : nUniq
 		iThisGroup = find( iUniq(iGroup) == iUniq(ii) );
-		thisName   = column_names{ iUniq(ii) };
+		thisName   = column_names{ iUniq(ii) }
 		
 		% Concatenate the groups together
-		dataOut.( thisName ) = { [ data{ iThisGroup } ] };
+		dataOut.( thisName ) = [ data{ iThisGroup } ];
+		
+		% Footer?
+		if nFooter > 0
+			dataOut.(thisName) = dataOut.(thisName)(1:end-nFooter,:);
+		end
 		
 		% Get rid of old data
 		data( iThisGroup ) = { [] };
@@ -392,6 +427,7 @@ end
 %                   Has fields
 %                     'nCols'    Number of data columns
 %                     'nHeader'  Number of header lines
+%                     'nLines'   Number of lines in the file
 %                     'class'    Class of each column (double, integer, char)
 %
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
@@ -461,8 +497,30 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 		ii         = ii + 1;
 	end
 	
-	% Close the file
-	fclose(fileID);
+	% Save the line number for later.
+	lineNumber = ii;
+
+%------------------------------------%
+% Number of Lines in the File        %
+%------------------------------------%
+	%
+	% Adds significant time to process
+	%
+	nTotal = [];
+
+% 	% Count the number of lines
+% 	if ~feof(fileID)
+% 		while ~feof(fileID)
+% 			line = fgetl(fileID);
+% 			ii = ii + 1;
+% 		end
+% 	end
+% 	
+% 	% Close the file
+% 	fclose(fileID);
+% 	
+% 	% Number of lines in the file
+% 	nTotal = ii - 1;
 
 %------------------------------------%
 % Interpret Results                  %
@@ -470,9 +528,9 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 	% Did we succeed in finding the data?
 	if count == nRepeat
 		% Number of header lines
-		%   ii is 1 + the total number of lines read (loop +1 on exit)
+		%   lineNumber is 1 + the number of lines read during the header search
 		%   nRepeat + 1 extra lines -- nRepeat matches + 1 initial line
-		nHeader = ii - nRepeat - 2;
+		nHeader = lineNumber - nRepeat - 2;
 		header  = header(1:nHeader);
 	else
 		nHeader = -1;
@@ -509,7 +567,132 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 % Fill the Output Structure          %
 %------------------------------------%
 	info = struct( 'header',  { header },  ...
-	               'nHeader', nHeader, ...
-		             'nCols',   nCols,   ...
+		             'nCols',   nCols,       ...
+	               'nHeader', nHeader,     ...
+								 'nLines',  nTotal,      ...
 								 'class',   { type } );
+end
+
+
+%
+% Name
+%   MrFile_Read_Ascii_Info
+%
+% Purpose
+%   Get information about a file.
+%
+% Calling Sequence
+%   INFO = MrFile_Read_Ascii_Info(FILENAME)
+%     Obtain information about the ASCII file with name FILENAME. Return a
+%     structure with tags indicated below.
+%
+%   INFO = MrFile_Read_Ascii_Info(FILENAME, DELIMITER)
+%     Indicate fields are separated by DELIMITER.
+%
+%   INFO = MrFile_Read_Ascii_Info(FILENAME, DELIMITER, NLINES)
+%     Maximum number of lines to search for data.
+%
+% Parameters
+%   FILENAME        in, required, type=char
+%   DELIMITER       in, optional, type=char, default='\n,\b, '
+%   NLINES          in, optional, type=integer, default=100
+%
+% Returns
+%   INFO            out, required, type=structure
+%                   Has fields
+%                     'nCols'    Number of data columns
+%                     'nHeader'  Number of header lines
+%                     'nLines'   Number of lines in the file
+%                     'class'    Class of each column (double, integer, char)
+%
+% MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
+% Required Products None
+%
+% History:
+%   2015-04-09      Written by Matthew Argall
+%
+function info = MrFile_Read_Ascii_GetData(fileID, nLines, type, group, nHeader, nFooter)
+
+	nColumns = length(group);
+	
+	% Convert types to a format string
+	for ii = 1 : nColumns
+		switch lower(type{ii})
+			case 'char'
+				fmt = [fmt '%s '];
+			case 'double'
+				fmt = [fmt '%f64 '];
+			case 'single'
+				fmt = [fmt '%f32 '];
+			case 'uint'
+				fmt = [fmt '%u8 '];
+			case 'uint16'
+				fmt = [fmt '%u16 '];
+			case 'uint32'
+				fmt = [fmt '%u32 '];
+			case 'uint64'
+				fmt = [fmt '%u64 '];
+			case 'int'
+				fmt = [fmt '%d8 '];
+			case 'int16'
+				fmt = [fmt '%d16 '];
+			case 'int32'
+				fmt = [fmt '%d32 '];
+			case 'int64'
+				fmt = [fmt '%d64 '];
+			otherwise
+				error( ['Data type not supported: "' type{ii} '".'] )
+		end
+	end
+	
+	% Find unique groups
+	[~, iUniq, igroup] = unique(group);
+	nUniq = length(iUniq);
+	
+	% Information about the groups
+	%   - Indices of each group
+	%   - Number of copies in each group
+	%   - Datatype of each group
+	%   - Cell for each group of data
+	iGroup = cell(1, nUniq);
+	nGroup = zeros(1, nUniq);
+	gType  = cell(1, nUniq);
+	data   = cell(1, nUniq);
+	
+	% Get the information
+	for ii = 1 : nUniq
+		iGroup{ii} = find( iUniq(igroup) == iUniq(ii) );
+		nGroup(ii) = length( igroup{ii} );
+		gType{ii}  = type{ iUniq(ii) };
+		gName{ii}  = name{ iUniq(ii) };
+		
+		% Allocate data
+		if lower(gType{ii}, 'char')
+			data{ii} = cell(nGroup(ii), nLines);
+		else
+			data{ii} = zeros(nGroup(ii), nLines, gType{ii});
+		end
+	end
+	
+	% Skip over the header
+	line = '';
+	for ii = 1 : nHeader
+		line = fgetl(fileID);
+	end
+	
+	% Read the data
+	%   - fscanf() appears to require an exact format code and for all data
+	%     to be of the same class.
+	%   - fgetl() reads a line which can be broken into parts with regexp()
+	%     and DELIMITER. The result is a cell array for every line, and
+	%     formatting that would be a lot of work.
+	for ii = 1 : nLines
+		% Read one line of data
+		line1 = fscanf(fileID, fmt);
+		
+		% Parse the line
+		line2 = fgetl(fileID);
+		parts = regexp(line2, delimiter, 'split');
+		
+	end
 end
