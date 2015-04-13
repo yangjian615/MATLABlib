@@ -25,10 +25,10 @@
 %     same number of columns are found. Data types are determined by
 %     splitting a line of data and looking for numbers, letters, etc.
 %
-%   [DATA, INFO] = MrFile_Read_Ascii(FILENAME)
-%     Return information about
+%   [DATA, FILE_INFO] = MrFile_Read_Ascii(FILENAME)
+%     Return information about file.
 %
-%   DATA = MrFile_Read_Ascii(FILENAME, 'ParamName', ParamValue)
+%   [__] = MrFile_Read_Ascii(FILENAME, 'ParamName', ParamValue)
 %     Use any of the parameter name-value pairs listed below.
 %
 % Parameters
@@ -62,6 +62,7 @@
 %
 % Returns
 %   DATAOUT         out, required, type=structure
+%   FILE_INFO       out, optional, type=structure
 %
 % Examples
 %   Using the file
@@ -147,8 +148,10 @@
 % History:
 %   2015-04-09      Written by Matthew Argall
 %   2015-04-10      Field names are returned in same order as column names. - MRA
+%   2015-04-11      Changed INFO variable to FILE_INFO to avoid conflict
+%                     with MATLAB's info() [ and finfo() ] function. - MRA
 %
-function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
+function [dataOut, file_info] = MrFile_Read_Ascii(filename, varargin)
 
 	% Make sure the file exists
 	assert(exist(filename, 'file') == 2, ['File does not exist: "' filename '".'] )
@@ -163,6 +166,7 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 	groups       = [];
 	nFooter      = 0;
 	nHeader      = [];
+	file_info    = [];
 
 	% Check for optional arguments
 	nOptArgs = length(varargin);
@@ -223,27 +227,27 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 	%   - Number of lines
 	%   - Number of header lines
 	%   - Data types of each column
-	if nargout > 1 || nColumns == 0 || ( isempty(data_start) && isempty(nHeader) ) || isempty(column_types)
-		info = MrFile_Read_Ascii_Info(filename, delimiter, nHeader);
+	if nColumns == 0 || ( isempty(data_start) && isempty(nHeader) ) || isempty(column_types)
+		file_info = MrFile_Read_Ascii_Info(filename, delimiter, nHeader);
 		
 		% Number of header lines
 		if ( isempty(data_start) && isempty(nHeader) )
-			nHeader = info.nHeader;
+			nHeader = file_info.nHeader;
 		end
 		
 		% Number of columns
 		if nColumns == 0
-			nColumns = info.nCols;
+			nColumns = file_info.nColumns;
 		end
 		
 		% Type of data in each column
 		if isempty(column_types)
-			column_types = info.class;
+			column_types = file_info.ColumnTypes;
 		end
 		
 		% Clear the info structure
 		if nargout < 2
-			clear info
+			clear file_info
 		end
 	end
 	
@@ -327,7 +331,7 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
                   'HeaderLines',         nHeader,   ...
                   'MultipleDelimsAsOne', true);
 
-								% Close the file
+	% Close the file
 	fclose(fileID);
 
 %------------------------------------%
@@ -361,8 +365,7 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 		
 		% Keep output order the same as input order.
 		%   - IUNIQ are indices of the unique, sorted elements of COLUMN_NAMES.
-		%   - Sort IUNIQ so that UNAMES( IUNIQ ) are the uniq names in unsorted
-		%       order.
+		%   - Sort IUNIQ to return to unsorted order
 		siUniq = sort(iUniq);
 		
 		% Step through each unique value
@@ -378,12 +381,12 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 	% Find groups
 	[~, iUniq, iGroup] = unique(groups);
 	nUniq              = length(iUniq);
-	
+
 	% Concatenate the data into their groups.
 	dataOut = struct();
 	for ii = 1 : nUniq
 		iThisGroup = find( iUniq(iGroup) == iUniq(ii) );
-		thisName   = column_names{ iUniq(ii) }
+		thisName   = column_names{ iUniq(ii) };
 		
 		% Concatenate the groups together
 		dataOut.( thisName ) = [ data{ iThisGroup } ];
@@ -396,6 +399,26 @@ function [dataOut, info] = MrFile_Read_Ascii(filename, varargin)
 		% Get rid of old data
 		data( iThisGroup ) = { [] };
 	end
+
+%------------------------------------%
+% Return Info About File             %
+%------------------------------------%
+	if nargout > 1
+		if isempty(file_info)
+			file_info = struct( 'header',      [],               ...
+			                    'nCols',       nColumns,         ...
+			                    'nHeader',     nHeader,          ...
+			                    'nFooter',     nFooter,          ...
+			                    'ColumnNames', { column_names }, ...
+			                    'ColumnTypes', { column_types } );
+		else
+			file_info.nHeader         = nHeader;
+			file_info.nCols           = nColumns;
+			file_info.ColumnTypes     = column_types;
+			file_info.('ColumnNames') = column_names;
+			file_info.('nFooter')     = nFooter;
+		end
+	end
 end
 
 
@@ -407,14 +430,14 @@ end
 %   Get information about a file.
 %
 % Calling Sequence
-%   INFO = MrFile_Read_Ascii_Info(FILENAME)
+%   FILE_INFO = MrFile_Read_Ascii_Info(FILENAME)
 %     Obtain information about the ASCII file with name FILENAME. Return a
 %     structure with tags indicated below.
 %
-%   INFO = MrFile_Read_Ascii_Info(FILENAME, DELIMITER)
+%   FILE_INFO = MrFile_Read_Ascii_Info(FILENAME, DELIMITER)
 %     Indicate fields are separated by DELIMITER.
 %
-%   INFO = MrFile_Read_Ascii_Info(FILENAME, DELIMITER, NLINES)
+%   FILE_INFO = MrFile_Read_Ascii_Info(FILENAME, DELIMITER, NLINES)
 %     Maximum number of lines to search for data.
 %
 % Parameters
@@ -423,12 +446,13 @@ end
 %   NLINES          in, optional, type=integer, default=100
 %
 % Returns
-%   INFO            out, required, type=structure
+%   FILE_INFO       out, required, type=structure
 %                   Has fields
-%                     'nCols'    Number of data columns
-%                     'nHeader'  Number of header lines
-%                     'nLines'   Number of lines in the file
-%                     'class'    Class of each column (double, integer, char)
+%                     'ColumnTypes' Class of each column (double, integer, char)
+%                     'header'      The file header, one line per cell.
+%                     'nColumns'    Number of data columns
+%                     'nHeader'     Number of header lines
+%                     'nLines'      Number of lines in the file
 %
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
@@ -436,7 +460,7 @@ end
 % History:
 %   2015-04-09      Written by Matthew Argall
 %
-function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
+function file_info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 
 	if nargin < 3 || isempty(nLines)
 		nLines = 100;
@@ -469,8 +493,8 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 	header{1} = line;
 
 	% Find how many columns (words) the line has
-	parts = regexp(line, delimiter, 'split');
-	nCols = length(parts);
+	parts    = regexp(line, delimiter, 'split');
+	nColumns = length(parts);
 
 	% Start reading files
 	%   - Search for nRepeat consecutive lines with the same number of words.
@@ -485,7 +509,7 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 		nNew  = length(parts);
 		
 		% Same number of words?
-		if nNew == nCols
+		if nNew == nColumns
 			count = count + 1;
 		else
 			count = 0;
@@ -493,7 +517,7 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 		
 		% Move to the next line
 		header{ii} = line;
-		nCols      = nNew;
+		nColumns   = nNew;
 		ii         = ii + 1;
 	end
 	
@@ -533,18 +557,18 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 		nHeader = lineNumber - nRepeat - 2;
 		header  = header(1:nHeader);
 	else
-		nHeader = -1;
-		nCols   = 0;
-		header  = [];
+		nHeader  = -1;
+		nColumns = 0;
+		header   = [];
 	end
 
 %------------------------------------%
 % Determine Field Types              %
 %------------------------------------%
-	type = cell(1, nCols);
+	type = cell(1, nColumns);
 
 	% Step through each column to determine its type
-	for ii = 1 : nCols
+	for ii = 1 : nColumns
 		
 		% Integer
 		%   (+-) #####
@@ -566,11 +590,11 @@ function info = MrFile_Read_Ascii_Info(filename, delimiter, nLines)
 %------------------------------------%
 % Fill the Output Structure          %
 %------------------------------------%
-	info = struct( 'header',  { header },  ...
-		             'nCols',   nCols,       ...
-	               'nHeader', nHeader,     ...
-								 'nLines',  nTotal,      ...
-								 'class',   { type } );
+	file_info = struct( 'header',      { header },  ...
+	                    'nColumns',    nColumns,    ...
+	                    'nHeader',     nHeader,     ...
+	                    'nLines',      nTotal,      ...
+	                    'ColumnTypes', { type } );
 end
 
 

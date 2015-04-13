@@ -138,7 +138,9 @@ function time_parts = MrTimeParser_Breakdown(time, pattern)
 	
 	% Apply the regular expression
 	parts = regexp(time, regex, 'tokens');
-	
+	dims  = size(parts);
+	assert( max(dims) == nTimes, 'Input time string did not match input pattern.' );
+
 	% Must get rid of nested cells
 	if nTimes > 1
 		parts = vertcat(parts{:});

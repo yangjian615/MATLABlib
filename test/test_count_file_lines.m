@@ -1,4 +1,4 @@
-function [nlines] = test_count_file_lines(filename)
+function test_count_file_lines(filename)
     %
     % Test various methods for reading the number of lines in a file.
     %

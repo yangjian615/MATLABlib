@@ -14,14 +14,20 @@
 %     include additional regular expressions that help to narrow the
 %     search.
 %
-%   FILES = MrFile_Search(__, 'ParamName', ParamValue)
+%   [__, NFILES] = MrFile_Search(FILENAME)
+%     Return the number of files found.
+%
+%   [__] = MrFile_Search(__, 'ParamName', ParamValue)
 %     Filter results using any of the parameter name-value pairs below.
 %
 % Parameters
 %   FILENAME        in, required, type = char
 %   'Closest'       in, optional, type = boolean, default = false
-%                   Find the file that begins closest to TStart. This
-%                     option is ignored unless TStart is specified.
+%                   Find the nearest file with a start time <= TStart.
+%                     This option is ignored unless TStart is specified.
+%                     TEnd is also given, the file that starts <= TEnd
+%                     will serve as the upper limit of files times. All
+%                     files within the range are returned.
 %   'Directory'     in, optional, type = char, default = pwd()
 %                   Look in this directory instead of the present working
 %                     directory. The directory path may include tokens
@@ -74,7 +80,12 @@
 %   FILES           out, required, type = cell
 %
 % Examples
-%   CLUSTER data example: Given the directory and file names
+%
+%-------------------------------%
+%   CLUSTER data example:       %
+%-------------------------------%
+%
+%   Given the directory and file names
 %     >> directory = '/Users/argall/Documents/Work/Data/Cluster/20010705_060000_070000';
 %     >> fname     = 'C1_CP_CIS-CODIF_HS_H1_MOMENTS__20010705_060000_20010705_070000_V080206.cdf';
 %
@@ -116,7 +127,11 @@
 %     >> vertcat(files{:})
 %       /Users/argall/Documents/Work/Data/Cluster/20040325_073000_090000/C1_CP_CIS-CODIF_HS_H1_MOMENTS__20040325_073000_20040325_090000_V080213.cdf
 %
-%  MMS data example: Given the directory and file names
+%-------------------------------%
+%   MMS data example:           %
+%-------------------------------%
+%
+%   Given the directory and file names
 %    >> directory = '/Users/argall/Documents/Work/Data/MMS/DFG/';
 %    >> fname     = 'mms2_dfg_f128_l1a_20150317_v0.3.1.cdf';
 %
@@ -155,34 +170,51 @@
 %     Also, the file name contains only year, month, and day, so 'TimeOrder'
 %     must be changed.
 %    >> files = MrFile_Search(pattern, ...
-%                             'TStart',    '2015-03-19T00:00:00Z', ...
+%                             'TStart',    '2015-03-18T04:00:00Z', ...
 %                             'TimeOrder', '%Y%M%d');
 %    >> vertcat(files{:})
 %      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150317_v0.3.1.cdf
 %      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150318_v0.2.0.cdf
-%      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150319_v0.3.0.cdf
 %
 %  5. Pick the file that starts closest to TStart
 %    >> files = MrFile_Search(pattern, ...
 %                             'Closest',   true, ...
-%                             'TStart',    '2015-03-19T00:00:00Z', ...
+%                             'TStart',    '2015-03-18T04:00:00Z', ...
 %                             'TimeOrder', '%Y%M%d');
-%    >> vertcat(files{:})
-%      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150319_v0.3.0.cdf
+%    >> files
+%      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150318_v0.2.0.cdf
 %
 %  6. Filter by TStart and TEnd. Again, because the file name did not
-%     include an end time, the filter returns for which the start time
-%     occurs before both TStart and TEnd (see comments in code).
+%     include an end time, the filter returns all files for which
+%     there is a possibility of containing data, i.e. those for which
+%     the start time occurs before both TStart and TEnd (see comments in code).
 %    >> files = MrFile_Search(pattern, ...
-%                             'TStart',    '2015-03-19T00:00:00Z', ...
-%                             'TEnd',      '2015-03-20T00:00:00Z', ...
+%                             'TStart',    '2015-03-18T04:00:00Z', ...
+%                             'TEnd',      '2015-03-19T11:00:00Z', ...
 %                             'TimeOrder', '%Y%M%d');
 %    >> vertcat(files{:})
 %      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150317_v0.3.1.cdf
 %      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150318_v0.2.0.cdf
 %      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150319_v0.3.0.cdf
 %
-%  7. Filter by TStart and TEnd. Specify a time pattern. Not how 'TPattern'
+%  7. Specify 'Closest' with TStart and TEnd. This time, files are
+%     filtered by the closest file start <= TStart and the closest
+%     file start <= TEnd. All files between the two are returned.
+%     Note that if TEnd = '2015-03-19T00:00:00Z' and you wanted
+%     data only until 11:59:59.999 on 2015-03-18, the file for
+%     2015-03-19 would still be returned. Time intervals are
+%     inclusive on both ends to account for date rounding in file.
+%     names.
+%    >> files = MrFile_Search(pattern, ...
+%                             'Closest',   true, ...
+%                             'TStart',    '2015-03-18T04:00:00Z', ...
+%                             'TEnd',      '2015-03-19T11:00:00Z', ...
+%                             'TimeOrder', '%Y%M%d');
+%    >> vertcat(files{:})
+%      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150318_v0.2.0.cdf
+%      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150319_v0.3.0.cdf
+%
+%  8. Filter by TStart and TEnd. Specify a time pattern. Note how 'TPattern'
 %     has all components necessary to form 'TimeOrder'. If this were not
 %     the case, an error would occur.
 %    >> files = MrFile_Search(pattern, ...
@@ -195,15 +227,19 @@
 %      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150318_v0.2.0.cdf
 %      /Users/argall/Documents/Work/Data/MMS/DFG/mms2_dfg_f128_l1a_20150319_v0.3.0.cdf
 %
-%  
-%
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
 %
 % History:
 %   2015-04-08      Written by Matthew Argall
+%   2015-04-10      Changed TStart and TEnd filter to be inclusive on both
+%                     ends of the interval in case file times round. - MRA
+%   2015-04-12      Modified the behavior of 'Closest' to incorporate 'TEnd'.
+%                     added MMS example to show functionality. - MRA
+%   2015-04-13      Return a string if only 1 file is found. Added nFiles as
+%                     output argument. - MRA
 %
-function filesFound = MrFile_Search(filename, varargin)
+function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 
 	[inDir, inFile, inExt] = fileparts(filename);
 	inFile                 = [inFile inExt];
@@ -270,7 +306,6 @@ function filesFound = MrFile_Search(filename, varargin)
 	% Newest and Version are mutually exclusive.
 	%   - One or both must not be set.
 	assert( isempty(version) || ~newest,  'Version and Newest are mutually exclusive.' );
-	assert( isempty(tend)    || ~closest, 'Closest and TEnd are mutually exclusive.' );
 
 %------------------------------------%
 % Find Files                         %
@@ -425,14 +460,16 @@ function filesFound = MrFile_Search(filename, varargin)
 		%   - timeOrder will assemble the times in majority order and without
 		%     delimiters so that times can be compared numerically.
 		if isempty(iRepeat)
-			fStart = MrTimeParser(filesFound, inFile, timeOrder);
-			fEnd   = [];
+			fStart  = MrTimeParser(filesFound, inFile, timeOrder);
+			fEnd    = [];
+			tf_fend = false;
 		else
 			fStart = MrTimeParser(filesFound, inFile(1:tokStart(iRepeat)-1), timeOrder);
 			fEnd   = MrTimeParser(filesFound, inFile(tokStart(iRepeat):end), timeOrder);
 			
 			% Convert fEnd to an integer
-			fEnd = cellfun(@str2num, strcat( {'int64('}, fEnd,   {')'} ) );
+			fEnd    = cellfun(@str2num, strcat( {'int64('}, fEnd,   {')'} ) );
+			tf_fend = true;
 		end
 		
 		% Convert fStart to integers
@@ -445,8 +482,8 @@ function filesFound = MrFile_Search(filename, varargin)
 		end
 		
 		if tf_tend
-			tend   = MrTimeParser(tend,   tpattern, timeOrder);
-			tend   = str2num( ['int64(' tend   ')'] );
+			tend = MrTimeParser(tend, tpattern, timeOrder);
+			tend = str2num( ['int64(' tend   ')'] );
 		end
 
 	%------------------------------------%
@@ -469,32 +506,32 @@ function filesFound = MrFile_Search(filename, varargin)
 		% If we have less information, we simply remove the clause containing
 		% the missing information.
 		%
-		if isempty(fEnd)
+		if tf_fend
 			switch 1
 				case tf_tstart && tf_tend
-					tf_keep = (tstart >= fStart) & (tend > fStart);
+					tf_keep = ( (tstart >= fStart) & (tstart <= fEnd) ) | ...
+					          ( (tend   >= fStart) & (tend   <= fEnd) );
 
 				case tf_tstart
-					tf_keep = tstart >= fStart;
+					tf_keep = (tstart >= fStart) & (tstart <= fEnd);
 
 				case tf_tend
-					tf_keep = tend > fStart;
+					tf_keep = (tend >= fStart) & (tend <= fEnd);
 			end
-							
+
 	%------------------------------------%
 	% File Name Includes End Time        %
 	%------------------------------------%
 		else
 			switch 1
 				case tf_tstart && tf_tend
-					tf_keep = ( (tstart >= fStart) & (tstart <  fEnd) ) | ...
-										( (tend   >  fStart) & (tend   <= fEnd) );
+					tf_keep = (tstart >= fStart) | (tend >= fStart);
 
 				case tf_tstart
-					tf_keep = (tstart >= fStart) & (tstart < fEnd);
+					tf_keep = tstart >= fStart;
 
 				case tf_tend
-					tf_keep = (tend > fStart) & (tend <= fEnd);
+					tf_keep = tend >= fStart;
 			end
 		end
 		
@@ -502,35 +539,62 @@ function filesFound = MrFile_Search(filename, varargin)
 		filesFound = filesFound( tf_keep );
 		dirsFound  = dirsFound( tf_keep );
 		fStart     = fStart( tf_keep );
-			
-		if ~isempty(fEnd)
+
+		if tf_fend
 			fEnd = fEnd( tf_keep );
 		end
 	
 	%------------------------------------%
 	% Closest Time                       %
 	%------------------------------------%
-		if closest && length(filesFound) > 1
+		%
+		% We want to find the closes time to 'TStart'
+		%   - If the file has both a start and end time, there is
+		%     sufficient information to select the appropriate files.
+		%     We do not need to check anything.
+		%   - If only a start time exists in the file name, then the
+		%     selection process above may be too liberal. Find the
+		%     file that starts at or just before 'TStart'.
+		%   - If 'TEnd' was also given, find the file that starts
+		%     just before 'TEnd', and select all files between
+		%     'TStart' and 'TEnd'. Otherwise, just pick the file
+		%     associated with 'TStart.
+		%
+		if closest && ~tf_fend && length(filesFound) > 1
 			%
 			% Find the file that starts closest to TSTART
 			%
 
 			% Take the smallest difference in start times.
-			[~, iClosest] = min( tstart - fStart );
+			iStart = find( fStart <= tstart, 1, 'last' );
+			
+			% If 'TEnd' was given, find a range of files.
+			%   - Otherwise, just pick the closest.
+			if tf_tend && ~tf_fend
+				iEnd = find( fStart <= tend, 1, 'last' );
+			else
+				iEnd = iStart;
+			end
 
 			% Select only that one file
-			filesFound = filesFound( iClosest );
-			dirsFound  = dirsFound( iClosest );
-			fStart     = fStart( iClosest );
+			filesFound = filesFound( iStart:iEnd );
+			dirsFound  = dirsFound( iStart:iEnd );
+			fStart     = fStart( iStart:iEnd );
 
 			if ~isempty(fEnd)
-				fEnd = fEnd( tf_keep );
+				fEnd = fEnd( iStart:iEnd );
 			end
 		end
 	end
 		
-	%------------------------------------%
-	% Directory                          %
-	%------------------------------------%
+%------------------------------------%
+% Directory                          %
+%------------------------------------%
 	filesFound  = cellfun(@fullfile, dirsFound, filesFound, 'UniformOutput', false);
+	
+	% Return a string if only 1 file.
+	nFiles = length(filesFound);
+	if nFiles == 1
+		filesFound = filesFound{1};
+	end
 end
