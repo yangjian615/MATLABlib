@@ -50,6 +50,8 @@
 %
 function rotm = mreul2rotm(eul, varargin)
 	
+	degrees = false;
+	
 	% Optional parameters -- Sequence
 	nOptArgs = length(varargin);
 	if mod(nOptArgs, 2) == 1
@@ -61,14 +63,13 @@ function rotm = mreul2rotm(eul, varargin)
 	end
 	
 	% Other optional arguments
-	nOptArg = length(varargin);
-	if nOptArg > 1
+	if nOptArgs > 1
 		if strcmp(varargin{1}, 'Degrees')
 			degrees = varargin{2};
 		else
 			error( ['Argument not recognized "' varargin{1} '".'] );
 		end
-	elseif nOptArg ~= 0
+	elseif nOptArgs ~= 0
 		error( 'Incorrect number of arguments.' );
 	end
 	
@@ -136,7 +137,7 @@ function rotm = mreul2rotm_create(angle, axis)
 			         sin(angle)   0   cos(angle)];
 		
 		case 'Z'
-			rotm = [  cos(angle)  sin(angle)   0; ...
+			rotm = [  cos(angle)  sin(angle)  0; ...
 			         -sin(angle)  cos(angle)  0; ...
 			              0           0       1];
 

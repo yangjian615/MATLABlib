@@ -238,6 +238,7 @@
 %                     added MMS example to show functionality. - MRA
 %   2015-04-13      Return a string if only 1 file is found. Added nFiles as
 %                     output argument. - MRA
+%   2015-04-14      Prevent errors if 0 files are found. - MRA
 %
 function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 
@@ -336,7 +337,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 %------------------------------------%
 % Filter by Version                  %
 %------------------------------------%
-	if newest || ~isempty(version)
+	if nFiles > 0 && newest || ~isempty(version)
 		% Replace the version number with the empty string
 		regex_cell      = cell(1, nFiles);
 		rep_cell        = cell(1, nFiles);
@@ -430,7 +431,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 	tf_tend   = ~isempty(tend);
 	
 	% Filter files
-	if tf_tstart || tf_tend
+	if nFiles > 0 && (tf_tstart || tf_tend)
 		%
 		% Does the file name include TStart and TEnd?
 		%   - Assume TEnd takes the same form as TStart.
@@ -590,10 +591,14 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 %------------------------------------%
 % Directory                          %
 %------------------------------------%
-	filesFound  = cellfun(@fullfile, dirsFound, filesFound, 'UniformOutput', false);
+	nFiles = length(filesFound);
+	
+	% Append directory;
+	if nFiles > 0
+		filesFound  = cellfun(@fullfile, dirsFound, filesFound, 'UniformOutput', false);
+	end
 	
 	% Return a string if only 1 file.
-	nFiles = length(filesFound);
 	if nFiles == 1
 		filesFound = filesFound{1};
 	end
