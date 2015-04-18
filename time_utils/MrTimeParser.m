@@ -114,6 +114,7 @@ end
 %
 % History:
 %   2015-04-05      Written by Matthew Argall
+%   2015-04-18      1-element cell array is unnested properly. - MRA
 %
 function time_parts = MrTimeParser_Breakdown(time, pattern)
 
@@ -142,7 +143,7 @@ function time_parts = MrTimeParser_Breakdown(time, pattern)
 	assert( max(dims) == nTimes, 'Input time string did not match input pattern.' );
 
 	% Must get rid of nested cells
-	if nTimes > 1
+	if iscell(time)
 		parts = vertcat(parts{:});
 	end
 	parts = vertcat(parts{:});

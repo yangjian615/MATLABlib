@@ -17,6 +17,28 @@
 % Returns
 %   ROTVEC          out, required, type=3x1 or 3xN double
 %
+% Examples
+%   Create a vector that points to (1,1,0) (i.e. 45 degrees). Rotate the
+%   coordinate system by +45 degrees about the z-axis to align the x-axis
+%   with the vector.
+%     >> v    = [sqrt(2)/2 sqrt(2)/2 0];
+%     >> rotm = [  cosd(45)  sind(45)  0;
+%                 -sind(45)  cosd(45)  0;
+%                     0         0      1];
+%     >> rotv = mrvector_rotate(rotm, v)
+%        rotv = 1     0     0
+%
+%   Use the same vector above, but in column vector form. Rotate
+%   the CS by -45 degrees to align the y-axis with the vector.
+%     >> v    = [sqrt(2)/2; sqrt(2)/2; 0];
+%     >> rotm = [  cosd(-45)  sind(-45)  0;
+%                 -sind(-45)  cosd(-45)  0;
+%                     0         0        1];
+%     >> rotv = mrvector_rotate(rotm, v)
+%        rotv = 0
+%               1
+%               0
+%
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
 %
