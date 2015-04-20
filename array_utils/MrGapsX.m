@@ -57,8 +57,8 @@ function [iGaps, gapSize] = MrGapsX(X, delta_x)
 	% Locations of the data gaps
 	%   - First column holds the point just prior to a gap.
 	%   - Second column holds the point just after a gap.
-	igaps = find(ndt > 1.0);
-	igaps = [igaps; igaps + 1];
+	iGaps = find(ndt > 1.0);
+	iGaps = [iGaps; iGaps + 1];
 	
 	% Estimate the gap size
 	if nargout > 1

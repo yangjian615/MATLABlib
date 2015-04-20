@@ -30,7 +30,7 @@
 %   2015-03-26      Written by Matthew Argall
 %   2015-04-14      Renamed from fsm_intervals_find to MrIntervalsX.m - MRA
 %
-function idata = MrIntervalsX(X, delta_x)
+function [idata, nIntervals] = MrIntervalsX(X, delta_x)
 
 %------------------------------------%
 % Time and Sampling Intervals        %
@@ -45,7 +45,7 @@ function idata = MrIntervalsX(X, delta_x)
 	end
 
 %------------------------------------%
-% FGM Data Intervals                 %
+% Data Intervals                     %
 %------------------------------------%
 
 	% Number of sampling intervals between data points.
@@ -57,7 +57,7 @@ function idata = MrIntervalsX(X, delta_x)
 
 	% Number of data intervals
 	%   - One more than the number of data gaps.
-	n_intervals = length(igaps) + 1;
+	nIntervals = length(igaps) + 1;
 	
 	% Allocate memory
 	%   - First column holds the beginning of an interval
