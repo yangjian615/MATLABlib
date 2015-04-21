@@ -95,7 +95,7 @@ function rotvec = mrvector_rotate(mat, vec)
 %------------------------------------%
 % 3x3 * 3xN                          %
 %------------------------------------%
-	elseif matsize(1) == 3 && matsize(2) == 3 && vecsize(1) == 3
+	elseif matsize(1) == 3 && matsize(2) == 3 && matdims == 2 && vecsize(1) == 3
 		rotvec      = zeros( vecsize );
 		rotvec(1,:) = mat(1,1) .* vec(1,:) + mat(1,2) .* vec(2,:) + mat(1,3) .* vec(3,:);
 		rotvec(2,:) = mat(2,1) .* vec(1,:) + mat(2,2) .* vec(2,:) + mat(2,3) .* vec(3,:);
@@ -104,7 +104,7 @@ function rotvec = mrvector_rotate(mat, vec)
 %------------------------------------%
 % 3x3 * Nx3                          %
 %------------------------------------%
-	elseif matsize(1) == 3 && matsize(2) == 3 && vecsize(2) == 3
+	elseif matsize(1) == 3 && matsize(2) == 3 && matdims == 2 && vecsize(2) == 3
 		rotvec      = zeros( vecsize );
 		rotvec(:,1) = mat(1,1) .* vec(:,1) + mat(1,2) .* vec(:,2) + mat(1,3) .* vec(:,3);
 		rotvec(:,2) = mat(2,1) .* vec(:,1) + mat(2,2) .* vec(:,2) + mat(2,3) .* vec(:,3);

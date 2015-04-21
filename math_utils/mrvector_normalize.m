@@ -43,7 +43,7 @@ function vunit = mrvector_normalize(vec)
 %------------------------------------%
 % Nx3                                %
 %------------------------------------%
-	elseif vecsz(1) == 3
+	elseif vecsz(2) == 3
 		vunit(:,1) = vec(:,1) ./ vmag;
 		vunit(:,2) = vec(:,2) ./ vmag;
 		vunit(:,3) = vec(:,3) ./ vmag;
