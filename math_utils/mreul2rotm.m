@@ -75,11 +75,11 @@ function rotm = mreul2rotm(eul, varargin)
 	
 	% Must have same number of elements
 	assert( length(eul) == length(sequence), ...
-		      'Inputs must have same number of elements.' );
+	        'Inputs must have same number of elements.' );
 	
 	% EUL are given in angles
 	if degrees
-		eul = deg2rad(eul);
+		eul = eul * pi / 180.0;
 	end
 
 	% Loop through all angles

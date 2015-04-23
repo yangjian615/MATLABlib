@@ -54,27 +54,25 @@
 % History:
 %   2015-04-01      Written by Matthew Argall
 %   2015-04-23      Renamed PATTERN to FILEPATH as input parameter. Be smarter
-%                     about determining the system root on Windows machines. - MRA
+%                     about determining the system root on Windows machines. Count
+%                     each segment of FILEPATH as a whole word by surrounding with
+%                     "^" and "$" in regular expressions. - MRA
 %
 function [tree, count] = MrFile_Finder(filepath)
 
 	% Current path
 	path    = pwd();
 	sep     = filesep();
-%	sysroot = MrSysRoot();
 	
 	% Look for the system root specifier.
-	if ispc
-		% See if the 
-		if strmatch(filepath, '[A-Za-z]:')
-			sysroot = filepath(1:2);
-		else
-			sysroot = path(1:2);
-		end
-	elseif ismac
+	%   - Searching for MrTokens requires me to split FILEPATH at each SEP
+	%   - Unix root is '/', so will be removed. Windows is C:, so will not be removed
+	if ismac
 		sysroot = '/';
+	elseif ispc
+		sysroot = '';
 	else
-		error('Unexpected file system.');
+		error('Unexpected file system. I do not know how to find files.');
 	end
 
 %------------------------------------%
@@ -102,7 +100,7 @@ function [tree, count] = MrFile_Finder(filepath)
 	% Parse the FILEPATH into a part without tokens and a part with tokens
 	if isempty(iTokens)
 		[root, subpattern, ext] = fileparts(filepath);
-		subpattern = [subpattern ext];
+		subpattern = [ subpattern ext ];
 		
 	% Token is in the first directory part
 	elseif iTokens(1) == 1
@@ -115,6 +113,10 @@ function [tree, count] = MrFile_Finder(filepath)
 		subpattern = parts{ iTokens(1) };
 		subpattern = MrTokens_ToRegex( subpattern );
 	end
+	
+	% Search for an entire word -- no leading or trailing characters
+	% surrounding the regex match.
+	subpattern = ['^' subpattern '$'];
 
 %------------------------------------%
 % Parse the Current Piece            %

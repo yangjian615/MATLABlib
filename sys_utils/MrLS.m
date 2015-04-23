@@ -36,6 +36,9 @@
 %   'Regex':            in, optional, type=1xN char
 %                       A string used with the regexp() function to filter
 %                         results.
+%   'Sort':             in, optional, type=boolean, default=true
+%                       Dir returns in the same order as returned by the file system.
+%                         Sort the results so they are platform independent.
 %
 % Returns
 %   NAMES:          out, optional, type=1XN cell
@@ -46,10 +49,12 @@
 %
 % History:
 %   2015-04-01      Written by Matthew Argall
+%   2015-04-23      Added the 'Sort' parameter. - MRA
 %
 function [names, count] = MrLS(varargin)
 
 	% Defaults
+	tf_sort          = true;
 	directories      = false;
 	files            = false;
 	regex            = '';
@@ -70,6 +75,8 @@ function [names, count] = MrLS(varargin)
 				mark_directories = varargin{ii+1};
 			case 'MatchString'
 				matchstr = varargin{ii+1};
+			case 'Sort'
+				tf_sort  = varargin{ii+1};
 			otherwise
 				error( ['Parameter not recognized "' varargin{ii} '".'] );
 		end
@@ -85,7 +92,7 @@ function [names, count] = MrLS(varargin)
 	% Get the contents of the current folder
 	dirStruct = dir();
 	count     = length(dirStruct);
-	
+
 	% Keep files only
 	if files
 		dirStruct = dirStruct(  ~vertcat( dirStruct(:).isdir )' );
@@ -157,8 +164,14 @@ function [names, count] = MrLS(varargin)
 	end
 
 %------------------------------------%
-% Display List                       %
+% Output                             %
 %------------------------------------%
+
+	% Sort so results are platform independent
+	if tf_sort
+		names = sort(names);
+	end
+
 	% Display the names
 	if nargout == 0
 		fprintf('%s\n', names{:});
