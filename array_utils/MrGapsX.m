@@ -33,6 +33,9 @@
 %   2015-04-14      Written by Matthew Argall
 %
 function [iGaps, gapSize] = MrGapsX(X, delta_x)
+	
+	% X cannot be empty. gapSize will cause error.
+	assert(~isempty(X), 'X cannot be empty.');
 
 %------------------------------------%
 % Sampling Intervals                 %
@@ -59,7 +62,7 @@ function [iGaps, gapSize] = MrGapsX(X, delta_x)
 	%   - Second column holds the point just after a gap.
 	iGaps = find(ndt > 1.0);
 	iGaps = [iGaps; iGaps + 1];
-	
+
 	% Estimate the gap size
 	if nargout > 1
 		gapSize = round( ( X(iGaps(2,:)) - X(iGaps(1,:)) ) / delta_x ) - 1;
