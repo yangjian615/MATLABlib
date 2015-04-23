@@ -7,8 +7,8 @@
 %   tokens recognized by MrTokens.
 %
 % Calling Sequence
-%   FILENAMES = MrFile_Search(PATTERN)
-%     Find all file names that match the filepath pattern PATTERN.
+%   FILENAMES = MrFile_Search(FILEPATH)
+%     Find all file names that match the filepath FILEPATH.
 %
 % Parameters
 %   PATTERN:        in, optional, type=char
@@ -17,24 +17,71 @@
 %   NAMES:          out, optional, type=1XN cell
 %   COUNT:          out, optional, type=integer
 %
+% Examples
+%   Find files in a "spacecraft/Year/Month/" directory structure with a 
+%   'YearMonthDay' filename pattern.
+%     1. Example file name:
+%       >> example = '/Users/argall/Documents/Work/Data/RBSP/Ephemeris/A/2013/11/rbspa_def_MagEphem_TS04D_20131101_v1.0.0.h5';
+%
+%     2. File path pattern. %Y, %M, and %d represent year, month, and day, respectively.
+%        "%(" and "%)" will protect the regex patterns "(a|b)" and "(A|B)" that find
+%        spacecraft A or B so that they are not interpreted as part of the file path:
+%       >> directory = '/Users/argall/Documents/Work/Data/RBSP/Ephemeris/%((A|B)%)/%Y/%M/';
+%       >> filename  = 'rbsp%((a|b)%)_def_MagEphem_TS04D_%Y%M%d_v*.h5';
+%       >> filepath  = fullfile(directory, filename);
+%
+%    3. Find the files
+%       >> results = MrFile_Finder(filepath);
+%       >> length(results)
+%             = 122
+%       >> vertcat(results{:})           % An exerpt
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/A/2013/11/rbspa_def_MagEphem_TS04D_20131101_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/A/2013/11/rbspa_def_MagEphem_TS04D_20131102_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/A/2013/11/rbspa_def_MagEphem_TS04D_20131103_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/A/2013/12/rbspa_def_MagEphem_TS04D_20131201_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/A/2013/12/rbspa_def_MagEphem_TS04D_20131202_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/A/2013/12/rbspa_def_MagEphem_TS04D_20131203_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/B/2013/11/rbspb_def_MagEphem_TS04D_20131101_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/B/2013/11/rbspb_def_MagEphem_TS04D_20131102_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/B/2013/11/rbspb_def_MagEphem_TS04D_20131103_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/B/2013/12/rbspb_def_MagEphem_TS04D_20131201_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/B/2013/12/rbspb_def_MagEphem_TS04D_20131202_v1.0.0.h5
+%           /Users/argall/Documents/Work/Data/RBSP/Ephemeris/B/2013/12/rbspb_def_MagEphem_TS04D_20131203_v1.0.0.h5
+%
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
 %
 % History:
 %   2015-04-01      Written by Matthew Argall
+%   2015-04-23      Renamed PATTERN to FILEPATH as input parameter. Be smarter
+%                     about determining the system root on Windows machines. - MRA
 %
-function [tree, count] = MrFile_Finder(pattern)
+function [tree, count] = MrFile_Finder(filepath)
 
 	% Current path
 	path    = pwd();
 	sep     = filesep();
-	sysroot = MrSysRoot();
+%	sysroot = MrSysRoot();
+	
+	% Look for the system root specifier.
+	if ispc
+		% See if the 
+		if strmatch(filepath, '[A-Za-z]:')
+			sysroot = filepath(1:2);
+		else
+			sysroot = path(1:2);
+		end
+	elseif ismac
+		sysroot = '/';
+	else
+		error('Unexpected file system.');
+	end
 
 %------------------------------------%
 % First Token                        %
 %------------------------------------%
-	% Break the pattern into parts
-	parts  = regexp(pattern, sep, 'split');
+	% Break the FILEPATH into parts
+	parts  = regexp(filepath, sep, 'split');
 	nParts = length(parts);
 	
 	% Find the directory elements with a token identifier
@@ -52,9 +99,9 @@ function [tree, count] = MrFile_Finder(pattern)
 	iTokens = find(tf_token);
 	nTokens = length(iTokens);
 	
-	% Parse the pattern into a part without tokens and a part with tokens
+	% Parse the FILEPATH into a part without tokens and a part with tokens
 	if isempty(iTokens)
-		[root, subpattern, ext] = fileparts(pattern);
+		[root, subpattern, ext] = fileparts(filepath);
 		subpattern = [subpattern ext];
 		
 	% Token is in the first directory part
@@ -90,7 +137,7 @@ function [tree, count] = MrFile_Finder(pattern)
 	%   - Nothing
 	if (nTokens == 0) || (iTokens(1) == nParts)
 		remainder = '';
-		
+
 	% All path parts beyond the part with the first token.
 	%   - Lead with the file separator.
 	else
@@ -113,7 +160,7 @@ function [tree, count] = MrFile_Finder(pattern)
 			next = fullfile(sysroot, root, pathOut{ii}, remainder);
 			
 			% Recursively search for the next part of the path
-			tempTree = MrFile_Search(next);
+			tempTree = MrFile_Finder(next);
 			
 			% Keep the results
 			if isempty(tree)

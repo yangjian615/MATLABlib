@@ -99,7 +99,7 @@ function [regex] = MrTokens_ToRegex(pattern)
 		iend   = iend   - istart(ii) + 1;
 		istart = istart - istart(ii) + 1;
 		
-		% Extract the token and append its regular expression to pre
+		% Extract the token
 		theToken = post(istart(ii)+1:iend(ii));
 		
 	%------------------------------------%
@@ -118,12 +118,18 @@ function [regex] = MrTokens_ToRegex(pattern)
 			iclose = istart(iCloseTok) - 1;
 			
 			% Whatever is between the parentheses gets moved straight to PRE
-			%   - Three parts:
+			%   Three parts:
 			%     1. Prior to token
 			%     2. Between "%(" and "%)"
-			%     3. After "%)" and before the next token
-			pre  = [pre post(iopen:iclose) post(iend(iCloseTok)+1:istart(iCloseTok+1)-1)];
-			post = post(istart(iCloseTok+1):end);
+			%     3. After "%)" but before the next token
+			%   Must check if "%)" is the last token.
+			if iCloseTok == length(iend)
+				pre  = [ pre post(iopen:iclose) post( iend(iCloseTok)+1:end )];
+				post = '';
+			else
+				pre  = [pre post(iopen:iclose) post( iend(iCloseTok)+1:istart(iCloseTok+1)-1 )];
+				post = post(istart(iCloseTok+1):end);
+			end
 			
 			% Skip to "%)"
 			ii = iCloseTok;
