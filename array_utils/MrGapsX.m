@@ -8,7 +8,8 @@
 %
 % Calling Sequence:
 %   IGAPS = MrGapsX(X);
-%     Find the elements in X just before and just after a data gap.
+%     Find the elements in X just before and just after a data gap. If no
+%     gaps are found IGAPS is a 2x0 empty array.
 %
 %   IGAPS = MrIntervalsX(X, DELTA_X);
 %     Provide the sampling interval DELTA_X -- the spacing between
@@ -31,11 +32,9 @@
 %
 % History:
 %   2015-04-14      Written by Matthew Argall
+%   2015-04-27      Return empty GAPSIZE when no gaps are present. - MRA
 %
 function [iGaps, gapSize] = MrGapsX(X, delta_x)
-	
-	% X cannot be empty. gapSize will cause error.
-	assert(~isempty(X), 'X cannot be empty.');
 
 %------------------------------------%
 % Sampling Intervals                 %
@@ -60,8 +59,12 @@ function [iGaps, gapSize] = MrGapsX(X, delta_x)
 	% Locations of the data gaps
 	%   - First column holds the point just prior to a gap.
 	%   - Second column holds the point just after a gap.
-	iGaps = find(ndt > 1.0);
-	iGaps = [iGaps; iGaps + 1];
+	iGaps      = find(ndt > 1.0);
+	if length(iGaps) == 0
+		iGaps = zeros(2,0);
+	else
+		iGaps = [iGaps; iGaps + 1];
+	end
 
 	% Estimate the gap size
 	if nargout > 1
