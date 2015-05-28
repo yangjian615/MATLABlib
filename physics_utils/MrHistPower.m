@@ -23,7 +23,7 @@
 %
 % Returns
 %   HIST_PWR         out, required, type=XxYxZ double
-%		F                out, optional, type=1xN double
+%   F                out, optional, type=1xN double
 %
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
@@ -34,17 +34,14 @@
 function [hist_pwr, f] = MrHistPower(data, window, noverlap, nfft, fs)
 
 	% Inputs
-	root      = '/Users/argall/Documents/Work/Data/Cluster/FGM/';
-	filename  = fullfile(root, 'C1_CP_FGM_FULL__20010213_000000_20010213_235959_V140306.cdf');
-	Bname     = c_create_varname('B_vec_xyz_gse', 1, 'FGM', 'FULL');
-	rangename = c_create_varname('range', 1, 'FGM', 'FULL');
-	modename  = c_create_varname('tm', 1, 'FGM', 'FULL');
-	
-	% Read the data
-	[B, t_epoch] = MrCDF_Read(filename, Bname);
-	range        = MrCDF_Read(filename, rangename);
-	tm           = MrCDF_Read(filename, modename);
-	
+	root         = '/Users/argall/Documents/Work/Data/MMS/DFG/';
+	fg_l1a_fname = fullfile(root, 'mms3_dfg_srvy_l1b_20150418_v0.0.1.cdf');
+	fg_l1b_fname = fullfile(root, 'mms3_dfg_f128_l1a_20150418_v0.7.1.cdf');
+	fg_l1a       = mms_fg_read_l1b(fg_l1a_fname);
+	fg_l1b       = mms_fg_read_l1b(fg_l1b_fname);
+
+keyboard;
+
 	% Select range 2 data that is not burst mode.
 	iGood   = find(range == 2 & tm == 22);
 	B       = B(iGood, :);
@@ -81,7 +78,13 @@ function [hist_pwr, f] = MrHistPower(data, window, noverlap, nfft, fs)
 	for ii = 1 : length(f)
 		hcount(:, ii) = histc(Pxx(ii, :), edges);
 	end
-  
+	
+	% Find the median power at each frequency
+	theFloor = median(hcount, 1);
+
+	% Overplot the median power over the histogrammed power
+	hold on
+
 	% Plot the distribution of powers at each frequency.
 	surf(f, edges, hcount);
 	title('Noise Floor');
@@ -93,10 +96,12 @@ function [hist_pwr, f] = MrHistPower(data, window, noverlap, nfft, fs)
 	% Change the view
 	view([0, 90]);
 	
+	% Plot the median power (noise floor)
+	plot(f, theFloor);
+	
 	% Create a colorbar
 	cb = colorbar('eastoutside');
 	set(get(cb, 'YLabel'), 'String', 'Counts');
-
 end
 
 

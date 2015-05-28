@@ -9,8 +9,12 @@
 %   LINE = MrLine3D(R0, R1)
 %     Create a line in 3D that connects the point R0 to R1.
 %
-%   LINE = MrLine3D(..., NPOINTS)
+%   LINE = MrLine3D(__, NPOINTS)
 %     The line will have NPOINTS number of vertices.
+%
+%   LINE = MrLine3D(R0, V, NPOINTS, RANGE)
+%     Draw a line through the point R0 using a vector that
+%     is parrallel to V.
 %
 % Parameters
 %   R0              in, required, type = 1x3 double

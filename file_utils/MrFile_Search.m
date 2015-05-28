@@ -436,7 +436,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 		% Does the file name include TStart and TEnd?
 		%   - Assume TEnd takes the same form as TStart.
 		%   - Assume TStart does not repeat tokens.
-		%   - See if the first token is repeated.
+		%   - Filenames include TStart and TEnd if the first token of TStart is repeated.
 		%
 		% Times are put into TimeOrder and converted to integers. This allows
 		% for easy comparison. 

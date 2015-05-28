@@ -1,9 +1,9 @@
 %
 % Name
-%   mms_dss_despin
+%   MrTokens_Extract
 %
 % Purpose
-%   Transform a vector field from a spinning frame to a despun frame.
+%   Extract MrTokens.m tokens from a string.
 %
 % Examples
 %   Extract all tokens.
@@ -19,7 +19,7 @@
 %       iend   =  16    18    20
 %
 %   Replace a parenthetic expression with '---':
-%		  >> [tokens, istart, iend, patternOut] = MrTokens_Extract('l2g_%((a|b)%)_%Y%M%d', 'IgnoreParens', true, 'ReplaceParens', '---')
+%      >> [tokens, istart, iend, patternOut] = MrTokens_Extract('l2g_%((a|b)%)_%Y%M%d', 'IgnoreParens', true, 'ReplaceParens', '---')
 %       tokens     = '%Y' '%M'  '%d'
 %       istart     =   9   11    13
 %       iend       =  10   12    14
