@@ -49,6 +49,7 @@
 %
 % History:
 %   2015-04-10      Written by Matthew Argall
+%   2015-06-03      Read_Ascii now returns row vectors. Horizontally concatenate. - MRA
 %
 function data = MrFile_Read_nAscii(filenames, varargin)
 
@@ -79,7 +80,7 @@ function data = MrFile_Read_nAscii(filenames, varargin)
 		%   - MrFile_Read_Ascii concatenates along the first dimension.
 		for jj = 1 : file_info.nCols
 			data.( file_info.ColumnNames{jj} ) ...
-				= vertcat( data.( file_info.ColumnNames{jj} ), temp.( file_info.ColumnNames{jj} ) );
+				= [ data.( file_info.ColumnNames{jj} ), temp.( file_info.ColumnNames{jj} ) ];
 		end
 	end
 end

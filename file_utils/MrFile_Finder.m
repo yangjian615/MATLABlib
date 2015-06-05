@@ -7,7 +7,7 @@
 %   tokens recognized by MrTokens.
 %
 % Calling Sequence
-%   FILENAMES = MrFile_Search(FILEPATH)
+%   FILENAMES = MrFile_Finder(FILEPATH)
 %     Find all file names that match the filepath FILEPATH.
 %
 % Parameters
@@ -57,6 +57,7 @@
 %                     about determining the system root on Windows machines. Count
 %                     each segment of FILEPATH as a whole word by surrounding with
 %                     "^" and "$" in regular expressions. - MRA
+%   2015-05-28      Chick if isunix instead of ismac to include linux machines. - MRA
 %
 function [tree, count] = MrFile_Finder(filepath)
 
@@ -67,7 +68,7 @@ function [tree, count] = MrFile_Finder(filepath)
 	% Look for the system root specifier.
 	%   - Searching for MrTokens requires me to split FILEPATH at each SEP
 	%   - Unix root is '/', so will be removed. Windows is C:, so will not be removed
-	if ismac
+	if isunix
 		sysroot = '/';
 	elseif ispc
 		sysroot = '';

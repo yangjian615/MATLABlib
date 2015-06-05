@@ -75,54 +75,54 @@
 %   1. Read all records
 %     >> data = MrFile_Read_Ascii(filename)
 %       data      1x1             116452106  struct
-%       data =      Column1:  {{274637x1 cell}}
-%                   Column2:  {[274637x1 double]}
-%                   Column3:  {[274637x1 double]}
-%                   Column4:  {[274637x1 double]}
-%                   Column5:  {[274637x1 double]}
-%                   Column6:  {[274637x1 double]}
-%                   Column7:  {[274637x1 double]}
-%                   Column8:  {[274637x1 double]}
-%                   Column9:  {[274637x1 double]}
-%                   Column10: {[274637x1 double]}
-%                   Column11: {[274637x1 double]}
-%                   Column12: {[274637x1 double]}
-%                   Column13: {[274637x1 double]}
-%                   Column14: {[274637x1 double]}
-%                   Column15: {[274637x1 double]}
-%                   Column16: {[274637x1 double]}
-%                   Column17: {[274637x1 double]}
-%                   Column18: {[274637x1 double]}
-%                   Column19: {[274637x1 double]}
-%                   Column20: {[274637x1 double]}
-%                   Column21: {{274637x1 cell}}
+%       data =      Column1:  {{1x274637 cell}}
+%                   Column2:  {[1x274637 double]}
+%                   Column3:  {[1x274637 double]}
+%                   Column4:  {[1x274637 double]}
+%                   Column5:  {[1x274637 double]}
+%                   Column6:  {[1x274637 double]}
+%                   Column7:  {[1x274637 double]}
+%                   Column8:  {[1x274637 double]}
+%                   Column9:  {[1x274637 double]}
+%                   Column10: {[1x274637 double]}
+%                   Column11: {[1x274637 double]}
+%                   Column12: {[1x274637 double]}
+%                   Column13: {[1x274637 double]}
+%                   Column14: {[1x274637 double]}
+%                   Column15: {[1x274637 double]}
+%                   Column16: {[1x274637 double]}
+%                   Column17: {[1x274637 double]}
+%                   Column18: {[1x274637 double]}
+%                   Column19: {[1x274637 double]}
+%                   Column20: {[1x274637 double]}
+%                   Column21: {{1x274637 cell}}
 %
 %   2. Specify Groups
 %     >> groups = [1,2,3,3,3,3,4,4,4,4,5,5,5,6,6,6,7,7,7,8,9];
 %     >> data = MrFile_Read_Ascii(filename, 'Groups', groups)
-%      data =     Column1: {274637x1 cell}
-%                 Column2: [274637x1 double]
-%                 Column3: [274637x4 double]
-%                 Column4: [274637x4 double]
-%                 Column5: [274637x3 double]
-%                 Column6: [274637x3 double]
-%                 Column7: [274637x3 double]
-%                 Column8: [274637x1 double]
-%                 Column9: {274637x1 cell}
+%      data =     Column1: {1x274637 cell}
+%                 Column2: [1x274637 double]
+%                 Column3: [4x274637 double]
+%                 Column4: [4x274637 double]
+%                 Column5: [3x274637 double]
+%                 Column6: [3x274637 double]
+%                 Column7: [3x274637 double]
+%                 Column8: [1x274637 double]
+%                 Column9: {1x274637 cell}
 %
 %   3. Specify names
 %     >> column_names = {'UTC', 'TAI', 'q', 'q', 'q', 'q', 'w', 'w', 'w', 'w', ...
 %                        'z', 'z', 'z', 'L', 'L', 'L', 'P', 'P', 'P', 'Nut', 'QF'}
 %     >> data = MrFile_Read_Ascii(filename, 'ColumnNames', column_names)
-%      data =    UTC: {274637x1 cell}
-%                TAI: [274637x1 double]
-%                  q: [274637x4 double]
-%                  w: [274637x4 double]
-%                  z: [274637x3 double]
-%                  L: [274637x3 double]
-%                  P: [274637x3 double]
-%                Nut: [274637x1 double]
-%                 QF: {274637x1 cell}
+%      data =    UTC: {1x274637 cell}
+%                TAI: [1x274637 double]
+%                  q: [4x274637 double]
+%                  w: [4x274637 double]
+%                  z: [3x274637 double]
+%                  L: [3x274637 double]
+%                  P: [3x274637 double]
+%                Nut: [1x274637 double]
+%                 QF: {1x274637 cell}
 %
 %   4. Specify data types
 %     >> column_names = {'UTC', 'TAI', 'q', 'q', 'q', 'q', 'w', 'w', 'w', 'w', ...
@@ -150,6 +150,7 @@
 %   2015-04-10      Field names are returned in same order as column names. - MRA
 %   2015-04-11      Changed INFO variable to FILE_INFO to avoid conflict
 %                     with MATLAB's info() [ and finfo() ] function. - MRA
+%   2015-06-03      Return row vectors. Three grouped columns become 3xN array. - MRA
 %
 function [dataOut, file_info] = MrFile_Read_Ascii(filename, varargin)
 
@@ -325,11 +326,12 @@ function [dataOut, file_info] = MrFile_Read_Ascii(filename, varargin)
 	fileID = fopen(filename);
 
 	% Read the data
-	data = textscan(fileID, fmt,                      ...
-                  'CommentStyle',        comment,   ...
-                  'Delimiter',           delimiter, ...
-                  'HeaderLines',         nHeader,   ...
-                  'MultipleDelimsAsOne', true);
+	%   - Data is returned in column vectors. Will transpose later.
+	data = textscan(fileID, fmt,                     ...
+	               'CommentStyle',        comment,   ...
+	               'Delimiter',           delimiter, ...
+	               'HeaderLines',         nHeader,   ...
+	               'MultipleDelimsAsOne', true);
 
 	% Close the file
 	fclose(fileID);
@@ -389,11 +391,12 @@ function [dataOut, file_info] = MrFile_Read_Ascii(filename, varargin)
 		thisName   = column_names{ iUniq(ii) };
 		
 		% Concatenate the groups together
-		dataOut.( thisName ) = [ data{ iThisGroup } ];
+		%    - Save columns as row vectors -- 3 grouped columns becomes 3xN array
+		dataOut.( thisName ) = [ data{ iThisGroup } ]';
 		
 		% Footer?
 		if nFooter > 0
-			dataOut.(thisName) = dataOut.(thisName)(1:end-nFooter,:);
+			dataOut.(thisName) = dataOut.(thisName)(:, 1:end-nFooter);
 		end
 		
 		% Get rid of old data
