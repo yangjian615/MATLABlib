@@ -62,7 +62,7 @@ function [idata, nIntervals] = MrIntervalsX(X, delta_x)
 	% Allocate memory
 	%   - First column holds the beginning of an interval
 	%   - Second column holds the end of a data interval.
-	idata      = zeros(2, n_intervals);
+	idata      = zeros(2, nIntervals);
 	idata(1,:) = 1.0;
 	
 	% The first data interval begins at 1, the last ends at index "end"
@@ -72,6 +72,6 @@ function [idata, nIntervals] = MrIntervalsX(X, delta_x)
 	% Other data intervals begin one point after.
 	%   - The first point just prior to a data gap.
 	%   - The first point just after a data gap.
-	idata(1, 2:n_intervals) = igaps+1;
+	idata(1, 2:nIntervals) = igaps+1;
 	idata(2, 1:end-1)       = igaps;
 end

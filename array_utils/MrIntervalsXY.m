@@ -57,7 +57,7 @@ function [ix iy] = MrIntervalsXY(X, Y, varargin)
 				case 'Remove'
 					tf_remove = varargin{ii+1};
 				case 'Sync'
-					error( 'The Tolerance parameter has not been implemented.' )
+					error( 'The Sync parameter has not been implemented.' )
 				case 'Tolerance'
 					error( 'The Tolerance parameter has not been implemented.' )
 				otherwise
@@ -73,8 +73,8 @@ function [ix iy] = MrIntervalsXY(X, Y, varargin)
 
 	% Find indices within the time arrays that bracket continuous data
 	% intervals.
-	ix = fsm_intervals_find( X );
-	iy = fsm_intervals_find( Y );
+	ix = MrIntervalsX( X );
+	iy = MrIntervalsX( Y );
 
 %------------------------------------%
 % Remove Intervals                   %
@@ -119,7 +119,7 @@ end
 
 %
 % Name:
-%   fsm_intervals_remove
+%   MrIntervalsXY_Remove
 %
 % Purpose:
 %   Find continuous data intervals within an evenly spaced, monotonic

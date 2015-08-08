@@ -50,6 +50,7 @@
 % History:
 %   2015-04-10      Written by Matthew Argall
 %   2015-06-03      Read_Ascii now returns row vectors. Horizontally concatenate. - MRA
+%   2015-06-16      Grouped columns were being concatenated more than once. Fixed. - MRA
 %
 function data = MrFile_Read_nAscii(filenames, varargin)
 
@@ -63,6 +64,10 @@ function data = MrFile_Read_nAscii(filenames, varargin)
 	
 	% Start by reading the first file
 	[data, file_info] = MrFile_Read_Ascii(filenames{1}, varargin{:});
+	
+	% Find unique column names
+	fields  = unique( file_info.ColumnNames );
+	nFields = length( fields );
 
 	% Now loop though all other files
 	for ii = 2 : nFiles
@@ -78,9 +83,8 @@ function data = MrFile_Read_nAscii(filenames, varargin)
 		
 		% Append data
 		%   - MrFile_Read_Ascii concatenates along the first dimension.
-		for jj = 1 : file_info.nCols
-			data.( file_info.ColumnNames{jj} ) ...
-				= [ data.( file_info.ColumnNames{jj} ), temp.( file_info.ColumnNames{jj} ) ];
+		for jj = 1 : nFields
+			data.( fields{jj} ) = [ data.( fields{jj} ), temp.( fields{jj} ) ];
 		end
 	end
 end
