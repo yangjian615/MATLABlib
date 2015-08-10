@@ -151,6 +151,7 @@
 %   2015-04-11      Changed INFO variable to FILE_INFO to avoid conflict
 %                     with MATLAB's info() [ and finfo() ] function. - MRA
 %   2015-06-03      Return row vectors. Three grouped columns become 3xN array. - MRA
+%   2015-07-21      Better error message when Grouped columns have same length. - MRA
 %
 function [dataOut, file_info] = MrFile_Read_Ascii(filename, varargin)
 
@@ -389,6 +390,12 @@ function [dataOut, file_info] = MrFile_Read_Ascii(filename, varargin)
 	for ii = 1 : nUniq
 		iThisGroup = find( iUniq(iGroup) == iUniq(ii) );
 		thisName   = column_names{ iUniq(ii) };
+		
+		% All columns in the group must have the same number of elements
+		%   - This will not be true in weirdly formatted or incomplete files.
+		colLen = cellfun( @length, data( iThisGroup ) );
+		assert( min( colLen == colLen(1) ) == 1, ...
+		        ['All columns in group "' thisName '" must have same number of elements.'])
 		
 		% Concatenate the groups together
 		%    - Save columns as row vectors -- 3 grouped columns becomes 3xN array

@@ -36,13 +36,17 @@
 % Required Products None
 %
 % History:
-%   2015-04-20      Written by Matthew Argall
+%   2015-08-09      Written by Matthew Argall
 %
 function [] = mrfprintf( varargin )
 
-	% Output to stderr, stdout, or log file
+%------------------------------------%
+% STDOUT, STDERR, STDLOG, etc.       %
+%------------------------------------%
 	if ischar(varargin{1})
-		% Output to stderr
+	%------------------------------------%
+	% STDERR                             %
+	%------------------------------------%
 		if strcmp( varargin{1}, 'stderr' )
 			% Get the file ID of stderr
 			fileID = mrstderr();
@@ -50,7 +54,9 @@ function [] = mrfprintf( varargin )
 			% Select stderr as the file id
 			fprintf(fileID, varargin{2:end});
 	
-		% Output to stdout
+	%------------------------------------%
+	% STDOUT                             %
+	%------------------------------------%
 		elseif strcmp( varargin{1}, 'stdout' )
 			% Get the file ID of stdout
 			fileID = mrstdout();
@@ -58,36 +64,78 @@ function [] = mrfprintf( varargin )
 			% Select stderr as the file id
 			fprintf(fileID, varargin{2:end});
 	
-		% Output to logfile
-		elseif ~isempty( regexp( varargin{1}, '^(stdlog|logerr|logout|logtext|logwarn)$', 'once' ) )
-			% Get the standard error logger object.
-			logfile = mrstdlog();
-			
+	%------------------------------------%
+	% LOGFILE                            %
+	%------------------------------------%
+		elseif ~isempty( regexp( varargin{1}, '^(stdlog|logout|logtext)$', 'once' ) )
 			% Convert text to string
 			text = sprintf( varargin{2:end} );
+			
+			% Get the standard error logger object.
+			logfile = mrstdlog();
 
 			% Add the error, warning, or message
 			switch varargin{1}
 				case 'stdlog'
 					logfile.AddError( text );
-				case 'logerr'
-					logfile.stderr( text );
 				case 'logout'
 					logfile.stdout( text );
 				case 'logtext'
 					logfile.AddText( text );
-				case 'logwarn'
-					logfile.AddWarning( text );
 				otherwise
 					% Not possible
 			end
+		
+	%------------------------------------%
+	% LOGERR                             %
+	%------------------------------------%
+		elseif strcmp( varargin{1}, 'logerr' )
+			% Error message structure
+			if isobject(varargin{2})
+				msg = varargin{2};
+			else
+				msg = sprintf( varargin{2:end} );
+			end
+			
+			% Get the error logger
+			logfile = mrstdlog();
+			
+			% Add the error
+			logfile.AddError(msg);
+		
+	%------------------------------------%
+	% LOGWARN                            %
+	%------------------------------------%
+		elseif strcmp( varargin{1}, 'logwarn' )
+			% Was a message identifier given?
+			%   - component:mneumonic
+			%   - Must begin with a letter
+			%   - Followed by any alphanumeric or underscore
+			%   - can be component:mneumonic:mneumonic:...
+			if ~isempty( regexp( varargin{2}, '^[A-Za-z][A-Za-z0-9_]*(:[A-Za-z][A-Za-z0-9_]*)+$', 'once') )
+				msgID = varargin{2};
+				msg   = sprintf( varargin{3:end} );
+			else
+				msgID = '';
+				msg   = sprintf( varargin{2:end} );
+			end
+			
+			% Get the log file
+			logfile = mrstdlog();
+
+			% Add the warning
+			logfile.AddWarning(msgID, msg);
 	
-		% Regular fprintf command
+	%------------------------------------%
+	% Regular fprinf                     %
+	%------------------------------------%
 		else
 			fprintf( varargin{:} );
 		end
-		
-	% Normal fprintf command.
+
+%------------------------------------%
+% Regular fprinf                     %
+%------------------------------------%
 	else
 		fprintf( varargin{:} );
 	end

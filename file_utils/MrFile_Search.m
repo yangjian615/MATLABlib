@@ -239,6 +239,8 @@
 %   2015-04-13      Return a string if only 1 file is found. Added nFiles as
 %                     output argument. - MRA
 %   2015-04-14      Prevent errors if 0 files are found. - MRA
+%   2015-07-21      Fixed problem catching files when TSTART < FSTART <= TEND. - MRA
+%   2015-08-09      Return the empty string (not empty cell) if no files are found. - MRA
 %
 function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 
@@ -549,7 +551,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 	% Closest Time                       %
 	%------------------------------------%
 		%
-		% We want to find the closes time to 'TStart'
+		% We want to find the closest time to 'TStart'
 		%   - If the file has both a start and end time, there is
 		%     sufficient information to select the appropriate files.
 		%     We do not need to check anything.
@@ -567,11 +569,27 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 			%
 
 			% Take the smallest difference in start times.
-			iStart = find( fStart <= tstart, 1, 'last' );
+			if tf_tend
+				% Remember, here there is only fStart, no fEnd
+				%   - The file with FSTART <= TSTART may contain TSTART
+				%   - The file with FSTART >  TEND   will not contain TEND.
+				iStart = find( fStart <= tstart, 1, 'last' );
+				iEnd   = find( fStart <= tend,   1, 'last' );
+				
+				% It is possible that the very first file has TSTART < FSTART <= TEND
+				%   - If so, pick the first file.
+				if isempty(iStart) && ~isempty(iEnd)
+					iStart = 1;
+				end
+			else
+				iStart = find( fStart <= tstart, 1, 'last' );
+				iEnd   = iStart
+			end
+				
 			
 			% If 'TEnd' was given, find a range of files.
 			%   - Otherwise, just pick the closest.
-			if tf_tend && ~tf_fend
+			if tf_tend
 				iEnd = find( fStart <= tend, 1, 'last' );
 			else
 				iEnd = iStart;
@@ -581,10 +599,6 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 			filesFound = filesFound( iStart:iEnd );
 			dirsFound  = dirsFound( iStart:iEnd );
 			fStart     = fStart( iStart:iEnd );
-
-			if ~isempty(fEnd)
-				fEnd = fEnd( iStart:iEnd );
-			end
 		end
 	end
 		
@@ -601,5 +615,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 	% Return a string if only 1 file.
 	if nFiles == 1
 		filesFound = filesFound{1};
+	elseif nFiles == 0
+		filesFound = '';
 	end
 end

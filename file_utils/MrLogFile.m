@@ -1,9 +1,13 @@
 %
 % Name
-%   MrErrorLogger
+%   MrLogFile
 %
 % Purpose
-%   Write text and error messages into a log file.
+%   Write text, warning, and error messages into a log file. By default, a log file
+%   is created. If the filename is changed to '' (the empty string), 'stdout', or
+%   'stderr; or if the fileID is changed to 1 or 2, then messages will be directed
+%   to MATLAB's standard out and standard error outputs (which both happen to be the
+%   console).
 %
 % Properties
 %   ALERT               Flag to alert user of errors.
@@ -30,9 +34,12 @@
 %   2015-08-07      Added NOCLUTTER property. Implemented ALERT and
 %                     STATUS properties.  - MRA
 %   2015-08-08      Added callstack, stderr, and stdout methods. Added
-%                     additional parameters to AddText method. - MRA
+%                     additional parameters to AddText method. Output
+%                     can be directed to MATLAB's stdout or stderr
+%                     (i.e. the console). Renamed from MrErrorLogger
+%                     to MrLogFile. - MRA
 %
-classdef MrErrorLogger < handle
+classdef MrLogFile < handle
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Object Properties \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
@@ -46,7 +53,8 @@ classdef MrErrorLogger < handle
 		lastmessage        % Last error message
 		noclutter          % Always delete log file, always alert user
 		status             % Current status of the error logger
-		traceback          % Flag to include traceback reports in error/warning messages.
+		traceback          % Flag to include traceback reports in error messages.
+		warn_traceback     % Flag to include traceback reports in warning messages.
 	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,7 +135,7 @@ classdef MrErrorLogger < handle
 		%     Any of the parameter name-value pairs listed below.
 		%
 		% Parameters
-		%   FILENAME:       in, optional, type=char, default='error_logger_yyyymmddHHMMSS_######.log'
+		%   FILENAME:       in, optional, type=char, default='MrLogFile_yyyymmddHHMMSS_######.log'
 		%   'Alert'         in, optional, type=boolean, default=false
 		%                   Alert user by printing message to command window.
 		%   'Delete'        in, optional, type=boolean, default=false
@@ -143,7 +151,7 @@ classdef MrErrorLogger < handle
 		% Returns
 		%   OBJ             out, required, type=structure
 		%
-		function obj = MrErrorLogger(varargin)
+		function obj = MrLogFile(varargin)
 			% Defaults
 			alert             = false;
 			delete_on_destroy = false;
@@ -152,11 +160,12 @@ classdef MrErrorLogger < handle
 			status            = uint8(1);
 			timestamp         = false;
 			traceback         = true;
+			warn_traceback    = false;
 			
 			% Default filename
 			if mod(nargin, 2) == 0
 				logFile  = fullfile( pwd(), ...
-				                     [ 'error_logger_' ...
+				                     [ 'MrLogFile_' ...
 				                       datestr(now(), 'yyyymmddHHMMSS') '_' ...
 				                       num2str( randi([1e5, 999999], 1, 'uint32') ) '.log' ] );
 				timestamp = false;
@@ -179,40 +188,45 @@ classdef MrErrorLogger < handle
 						timestamp = varargin{ii+1};
 					case 'Traceback'
 						traceback = varargin{ii+1};
+					case 'WarnTraceback'
+						warn_traceback = varargin{ii+1};
 					otherwise
 						error(['Unknown input parameter "' varargin{ii} '".']);
 				end
 			end
 			
-			% Relative name given? -- Make fully qualified.
-			[pathstr, name, ext] = fileparts(logFile);
-			if ~isempty(ext)
-				name = [name ext];
-			end
-			if strcmp(name, logFile)
-				logFile = fullfile( pwd(), logFile );
+			% Filename given?
+			if ~isempty(logFile)
+				% Relative name given? -- Make fully qualified.
+				[pathstr, name, ext] = fileparts(logFile);
+				if ~isempty(ext)
+					name = [name ext];
+				end
+				if strcmp(name, logFile)
+					logFile = fullfile( pwd(), logFile );
+				end
+				
+				% Add a timestamp to the file name?
+				if timestamp
+					% Separate file parts
+					[pathstr, name, ext] = fileparts(logFile);
+					
+					% Create time stamp
+					tstamp = [ datestr(date(), 'yyyymmddHHMMSS') '_' ...
+					           num2str( randi([1e5, 999999], 1, 'uint32') ) ];
+					
+					% Append time stamp
+					logFile = fullfile( pathstr, [name '_' tstamp] );
+					if ~isempty(ext)
+						logFile = [logFile ext];
+					end
+				end
 			end
 			
 			% Noclutter?
 			if noclutter
 				alert             = true;
 				delete_on_destroy = true;
-			end
-			
-			% Add a timestamp to the file name?
-			if timestamp
-				% Separate file parts
-				[pathstr, name, ext] = fileparts(logFile);
-				
-				% Create time stamp
-				tstamp = [ datestr(date(), 'yyyymmddHHMMSS') '_' ...
-				           num2str( randi([1e5, 999999], 1, 'uint32') ) ];
-				
-				% Append time stamp
-				logFile = fullfile( pathstr, [name '_' tstamp] );
-				if ~isempty(ext)
-					logFile = [logFile ext];
-				end
 			end
 			
 			%
@@ -227,6 +241,7 @@ classdef MrErrorLogger < handle
 			obj.traceback         = traceback;
 			obj.noclutter         = noclutter;
 			obj.status            = status;       % Must come after NOCLUTTER
+			obj.warn_traceback    = false;
 		end
 		
 		
@@ -322,7 +337,7 @@ classdef MrErrorLogger < handle
 			try
 				fileID       = fopen( newLogFile, 'w' );
 				obj.fileID   = fileID;
-				obj.filename = newLogFile;
+
 			catch ME
 				if exist( newLogFile, 'file' ) == 7
 					delete, newLogFile
@@ -346,7 +361,7 @@ classdef MrErrorLogger < handle
 		%     Close the log file.
 		%
 		function [] = close(obj)
-			if ~isempty(obj.fileID)
+			if ~isempty(obj.fileID) && obj.fileID > 2
 				fclose(obj.fileID);
 				obj.fileID = [];
 			end
@@ -529,12 +544,6 @@ classdef MrErrorLogger < handle
 				text = { text{:} stk{:} };
 			end
 			
-			% Open the log file, if necessary
-%			if isempty(obj.fileID)
-%				success = obj.open( obj.filename );
-%				assert( success, ['Cannot open log file: "' obj.filename '".'] );
-%			end
-			
 			% Write to file (and display).
 			nLines = length(text);
 			for ii = 1 : nLines
@@ -542,12 +551,6 @@ classdef MrErrorLogger < handle
 				if display
 					fprintf( [ text{ii} '\n' ] );
 				end
-			end
-			
-			% Add an empty line
-			fprintf( fileID, '\n' );
-			if display
-				fprintf( '\n' );
 			end
 			
 			% Flush buffer to file
@@ -570,10 +573,14 @@ classdef MrErrorLogger < handle
 		% Add warning to the log file
 		%
 		% Calling Sequence
-		%   obj.AddWarning(text)
+		%   obj.AddWarning()
+		%     Write the last warning, returned by MATLAB's lastwarn() function,
+		%     to the log file.
+		%
+		%   obj.AddWarning(MSG)
 		%     Add a warning message to the log file.
 		%
-		%   obj.AddWarning(text, textID)
+		%   obj.AddWarning(MSGID, MSG)
 		%     Add a warning message to the log file and assign it a message ID.
 		%
 		% Parameters
@@ -582,13 +589,24 @@ classdef MrErrorLogger < handle
 		function [] = AddWarning(obj, arg1, arg2)
 			% Check inputs
 			if nargin == 3
-				textID = arg1;
-				text   = arg2;
+				msgID = arg1;
+				msg   = arg2;
 			elseif nargin == 2
-				textID = '';
-				text   = arg1;
+				msgID = '';
+				msg   = arg1;
 			elseif nargin == 1
-				[text, textID] = lastwarn();
+				[msg, msgID] = lastwarn();
+			end
+			
+			% Error text must be a character array
+			assert( ischar(msg) && isrow(msg), 'ERRTEXT must be a scalar string.' );
+			
+			% Alert user
+			if obj.alert
+				warning(msgID, msg);
+			% Update the warning message and ID
+			else
+				lastwarn(msg, msgID);
 			end
 			
 			% Get the stack
@@ -598,18 +616,17 @@ classdef MrErrorLogger < handle
 			[stk, caller] = obj.callstack(3);
 			
 			% Append "Warning: " and " (caller)"
-			text = ['Warning: ' text ' (' caller ')'];
-
-			% Write the error message
-			obj.AddText(text, 'Display', obj.alert);
+			msg = ['Warning: ' msg ' (' caller ')'];
 			
 			% Write the callstack
-			if obj.traceback
-				obj.AddText( stk, 'Display', obj.alert );
+			%   - Add a blank line after
+			%   - AddText will append "\n" to '', thereby adding a blank line.
+			if obj.warn_traceback
+				msg = [ msg stk {''} ];
 			end
-			
-			% Update the warning message and ID
-			lastwarn(text, textID);
+
+			% Write the warning message
+			obj.AddText( msg );
 			
 			% Normal operation.
 			if obj.status ~= 2
@@ -622,44 +639,77 @@ classdef MrErrorLogger < handle
 		% Add error to the log file
 		%
 		% Calling Sequence
-		%   obj.AddText(text)
+		%   obj.AddError()
+		%     Write the last error, returned by MATLAB's lasterror() function,
+		%     to the log file.
+		%
+		%   obj.AddError(ERRTEXT)
 		%     Add an error message to the log file.
 		%
-		% Parameters
-		%   TEXT:           in, required, type=char/cell
+		%   obj.AddError(EXCEPTION)
+		%     Add an MATLAB Exception, EXCEPTION, to the log file.
 		%
-		function [] = AddError(obj, text)
+		% Parameters
+		%   ERRTEXT:        in, optional, type=char
+		%   EXCEPTION:      in, optional, type=object
+		%
+		function [] = AddError(obj, arg1)
 			% Get the error message
 			if nargin() < 2
-				err  = lasterror();
-				text = err.message;
-				stk  = err.stack;
+				err     = lasterror();
+				errText = err.message;
+				stk     = err.stack;
 			else
-				stk = dbstack();
+				% MATLAB Exception
+				if isobject(arg1)
+					% Error message
+					ME      = arg1;
+					assert( isa( ME, 'MException'), 'EXCEPTION must be a MException object.' );
+					errText = sprintf('%s', ME.message);
+					
+					% Program that generated the error
+					caller = ME.stack(1).name;
+					
+					% Build the stack
+					stk    = cell( 1, length(ME.stack) );
+					stk{1} = sprintf('  Error using %s (line %d)', ME.stack(1).name, ME.stack(1).line);
+					for ii = 2: length(ME.stack)
+						stk{ii} = sprintf('      %s (line %d)', ME.stack(ii).name, ME.stack(ii).line);
+					end
+
+				% Error Text
+				else
+					% Must be a character array
+					errText = arg1;
+					assert( ischar(errText) && isrow(errText), 'ERRTEXT must be a scalar string.' );
+					
+					% Get callstack and calling program
+					%   1 = obj.callstack
+					%   2 = obj.AddError
+					%   3 = calling program
+					[stk, caller] = obj.callstack(3);
+				end
 			end
-		
-			% Get callstack and calling program
-			%   1 = obj.callstack
-			%   2 = obj.AddError
-			%   3 = calling program
-			[stk, caller] = obj.callstack(3);
 			
 			% Add calling program to text.
-			text   = [caller ': ' text];
+			errText   = [caller ': ' errText];
 
 			% Write the callstack
+			%   - Add an empty line after.
+			%   - AddText will print '' on a new line, then print, "\n"
 			if obj.traceback
-				text = [ text stk ];
+				errText = [ errText stk {''} ];
+			else
+				errText = { errText '' };
 			end
 			
 			% Write the error message
-			obj.AddText(text, 'Display', obj.alert);
+			obj.AddText(errText, 'Display', obj.alert);
 			
 			% Logging an error
 			obj.status = 2;
 		end
-	
-	
+
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% Set Methods \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -669,15 +719,103 @@ classdef MrErrorLogger < handle
 		function obj = set.delete_on_destroy(obj, delete_on_destroy)
 			obj.delete_on_destroy = delete_on_destroy;
 		end
+		
+		
+		%
+		% Set the name of the log file. Note that setting the
+		% filename will automatically update the object's file ID. It is
+		% unwise for the user to set both.
+		%
 		function obj = set.filename(obj, filename)
-			obj.filename = filename;
+			% A string must be given
+			assert( ischar(filename) && ( isempty(filename) || isrow(filename) ), ...
+			        'FILENAME must be an empty or scalar string.' )
+
+			%
+			% TODO: Check if filename has changed. Would have to consider
+			%       relative file names.
+			%
+
+			% Notify user that an old file is being closed
+%			if ~isempty(obj.filename)
+%				fprintf( ['Closing log file: "' obj.filename '".\n'] );
+%			end
+			
+			% Close the old file
+			obj.close;
+			
+			% Null string resets output file to stderr
+			if isempty(filename) || strcmp(filename, 'stdout') || strcmp(filename, 'stderr')
+				obj.filename = '';
+				obj.fileID   = 2;
+			
+			% Set the file name.
+			%   - File will not be opened until first call to AddText
+			else
+				obj.filename = filename;
+				obj.fileID   = [];
+			end
 		end
+		
+		
+		%
+		% Set the file identifier of the log file. Note that setting the
+		% file ID will automatically update the object's filename. It is
+		% unwise for the user to set both at once.
+		%
+		function obj = set.fileID(obj, fileID)
+			% A scalar integer must be given
+			assert( isempty(fileID) || ( isnumeric(fileID) && isscalar(fileID) && fileID > 1 ), ...
+			        'FILEID must be a scalar integer > 1.' )
+
+			% Empty file ID
+			%  - set.filename will temporarily make the fileID empty.
+			%  - The new file will be opened upon the first call to AddText.
+			if isempty(fileID)
+				%
+				% TODO: Allow empty file IDs from only set.filename and obj.close.
+				%
+				obj.fileID = [];
+				
+			% Set the file ID
+			%   - If obj.fileID is empty, we are waiting for AddText
+			%     to open the file and assign a fileID.
+			%   - This occurs because set.filename closed the old
+			%     file and unset the file ID.
+			elseif isempty(obj.fileID)
+				obj.fileID = fileID;
+			
+			% Change the file ID
+			%   - The only way that fileID and obj.fileID can both
+			%     not be empty is if a log file is already open
+			%     and the user wants to make a different file the
+			%     target of log messages.
+			%   - In this case, calling set.filename will close the
+			%     old file, update the file name. We then set the
+			%     new fileID.
+			elseif fileID ~= obj.fileID
+				% Get the name of the file
+				%   - set.filename will close the old file
+				obj.filename = fopen(fileID);
+				
+				% Set the file ID
+				obj.fileID   = fileID;
+			end
+		end
+		
+		
 		function obj = set.immediate(obj, immediate)
 			obj.immediate = immediate;
 		end
 		function obj = set.lastmessage(obj, lastmessage)
 			obj.lastmessage = lastmessage;
 		end
+		
+		
+		%
+		% NOCLUTTER means the log file will always be deleted
+		% when the object is destroyed.
+		%
 		function obj = set.noclutter(obj, noclutter)
 			obj.noclutter = noclutter;
 			if noclutter
@@ -685,6 +823,21 @@ classdef MrErrorLogger < handle
 				obj.delete_on_destroy = true;
 			end
 		end
+		
+		%
+		% Set the operation status of the object
+		%
+		% Calling Sequence
+		%   obj.status = STATUS
+		%     Set the operating status, STATUS, of the object. Possible
+		%     values are::
+		%       1 - Waiting for input.
+		%       2 - Normal operations (log file is deleted when object is destroyed).
+		%       3 - Error operations (prevents file from being deleted).
+		%
+		% Parameters
+		%   STATUS          in, required, type=integer
+		%
 		function obj = set.status(obj, status)
 			% With NOCLUTTER, we always want to delete the file.
 			% If STATUS = 2, the log file will not be destroyed
@@ -699,6 +852,9 @@ classdef MrErrorLogger < handle
 		end
 		function obj = set.traceback(obj, traceback)
 			obj.traceback = traceback;
+		end
+		function obj = set.warn_traceback(obj, warn_traceback)
+			obj.warn_traceback = warn_traceback;
 		end
 
 	
@@ -728,6 +884,9 @@ classdef MrErrorLogger < handle
 		end
 		function traceback = get.traceback(obj)
 			traceback = obj.traceback;
+		end
+		function warn_traceback = get.warn_traceback(obj)
+			warn_traceback = obj.warn_traceback;
 		end
 	end
 end
