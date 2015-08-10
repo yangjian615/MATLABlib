@@ -541,9 +541,9 @@ classdef MrLogFile < handle
 			
 			% Add the traceback
 			if add_trace
-				text = { text{:} stk{:} };
+				text = [ text stk ];
 			end
-			
+
 			% Write to file (and display).
 			nLines = length(text);
 			for ii = 1 : nLines
@@ -619,7 +619,7 @@ classdef MrLogFile < handle
 			msg = ['Warning: ' msg ' (' caller ')'];
 			
 			% Write the callstack
-			%   - Add a blank line after
+			%   - Add a blank line before the warning.
 			%   - AddText will append "\n" to '', thereby adding a blank line.
 			if obj.warn_traceback
 				msg = [ msg stk {''} ];
@@ -669,7 +669,7 @@ classdef MrLogFile < handle
 					
 					% Program that generated the error
 					caller = ME.stack(1).name;
-					
+
 					% Build the stack
 					stk    = cell( 1, length(ME.stack) );
 					stk{1} = sprintf('  Error using %s (line %d)', ME.stack(1).name, ME.stack(1).line);
@@ -695,7 +695,7 @@ classdef MrLogFile < handle
 			errText   = [caller ': ' errText];
 
 			% Write the callstack
-			%   - Add an empty line after.
+			%   - Add an empty line after the error.
 			%   - AddText will print '' on a new line, then print, "\n"
 			if obj.traceback
 				errText = [ errText stk {''} ];
