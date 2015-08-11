@@ -17,12 +17,12 @@
 %     Instead of supplying a fileID, you can specify STDSTR, a character
 %     array that names the standard output to which you want the text
 %     printed. Options are
-%       'stdout'  -- Standard output
-%       'stderr'  -- Standard error
+%       'stdout'  -- Adds text  to standard output
+%       'stderr'  -- Adds error to standard error
 %       'stdlog'  -- Adds error to standard log file.
-%       'logerr'  -- Standard error via log file (more verbose).
-%       'logout'  -- Standard output via log file (more verbose).
-%       'logtext' -- Adds text to standard log file.
+%       'logerr'  -- Adds error to standard log file.
+%       'logout'  -- Adds text  to standard output, routed through log object.
+%       'logtext' -- Adds text  to standard log file.
 %       'logwarn' -- Adds warning to standard log file.
 %
 % Parameters
@@ -67,6 +67,17 @@ function [] = mrfprintf( varargin )
 	%------------------------------------%
 	% LOGFILE                            %
 	%------------------------------------%
+		%
+		% TODO:
+		%   If 'logout' outputs to standard output, routed through
+		%   the log object, should 'logerr' not output to standard
+		%   error, routed through the log object?
+		%
+		%   Or perhaps 'log*' should all go into the log file. But
+		%   then, how to direct to stdout and stderr via the log
+		%   file with the stdout and stderr methods?
+		%
+	
 		elseif ~isempty( regexp( varargin{1}, '^(stdlog|logout|logtext)$', 'once' ) )
 			% Convert text to string
 			text = sprintf( varargin{2:end} );

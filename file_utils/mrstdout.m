@@ -3,20 +3,26 @@
 %   mrstdout
 %
 % Purpose
-%   Open or assign a file to stdout.
-%
-%   To close the stdout file, set FILEID = 1.
+%   Open or assign a file to stdout.. To close the stdout file, do
+%   one of the following:
+%     >> mrstdout('');
+%     >> mrstdout('stdout');
+%     >> mrstdout(1);
 %
 % Calling Sequence
 %   FILEID = mrstdout()
 %     Return the file ID of the file assigned to stdout output.
 %
 %   mrstdout(FILENAME)
-%     Open file named FILENAME and assign its file ID to 
-%     stdout output.
+%     Assign standard output to the file named FILENAME.
+%     Additional options are::
+%       ''       - MATLAB'S stdout (console)
+%       'stdout' - MATLAB'S stdout (console)
 %
 %   mrstdout(FILEID)
-%     Assign the file ID, FILEID, to stdout output.
+%     Assign the file ID, FILEID, to stdout output. If FILEID = 1,
+%     output will be directed to MATLAB's standard output (i.e. the
+%     console).
 %
 %   mrstdout(..., KEEP_OPEN)
 %     Keep the old stdout file open. The default is to close the previous file.
@@ -55,7 +61,9 @@ function fileID = mrstdout( file, keep_open )
 	end
 	
 	% Check if stderr exists and is valid
-	tf_exist = exist('stdout', 'var') == 1;
+	%   - If stdout does not exist, GLOBAL will create it
+	%     and set stdout = []
+	tf_exist = ~isempty(stdout)
 
 %------------------------------------%
 % Get Current stderr File ID         %
@@ -75,8 +83,15 @@ function fileID = mrstdout( file, keep_open )
 % Open A File                        %
 %------------------------------------%
 	elseif ischar( file )
+		%
+		% TODO:
+		%   Determine if the file name is the one already in use.
+		%     - Watch out for relative paths
+		%     - fopen(stderr) will return the name current file.
+		%
+		
 		% Close the previous file
-		if ~keep_open && tf_exist && ~isempty(stdout) && stdout ~= 1
+		if ~keep_open && tf_exist && ~isempty(stdout) && stdout > 2
 			% Indicate which file we are closing
 			old_fname = fopen(stdout);
 			fprintf( ['mrstdout: Closing stdout file "' old_fname '".\n'] );
@@ -86,7 +101,11 @@ function fileID = mrstdout( file, keep_open )
 		end
 		
 		% Open the new file.
-		fileID = fopen( file, 'w' );
+		if isempty(file) || strcmp(file, 'stdout')
+			fileID = 1;
+		else
+			fileID = fopen( file, 'w' );
+		end
 		
 		% Make sure the file could be opened
 		if fileID == -1
@@ -102,7 +121,7 @@ function fileID = mrstdout( file, keep_open )
 		assert( file == 1 || file > 2, 'FILE must be a file ID > 2' );
 		
 		% Close the previous file
-		if ~keep_open && tf_exist && ~isempty(stdout) && stdout ~= file
+		if ~keep_open && tf_exist && ~isempty(stdout) && stdout ~= file && file > 2
 			% Indicate which file we are closing
 			old_fname = fopen(stdout);
 			fprintf( ['mrstdout: Closing stdout file "' old_fname '".\n'] );

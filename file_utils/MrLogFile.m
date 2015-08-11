@@ -73,12 +73,11 @@ classdef MrLogFile < handle
 		%     Specify number of levels up from the current position
 		%     in the callstack, LEVEL, at which the report should
 		%     begin. If LEVEL=1, then the report will begin here,
-		%     with MrErrorLogger.TRACEBACK.
+		%     with MrLogFile.TRACEBACK.
 		%
 		%   [STACK, CALLER] = obj.traceback(__)
 		%     Return the colling program CALLER. The calling program
-		%     will be the program one level up from LEVEL within the
-		%     callstack.
+		%     is identified by LEVEL within the callstack.
 		%
 		% Parameters
 		%   LEVEL           in, optional, type=integer, defualt=1
@@ -122,16 +121,28 @@ classdef MrLogFile < handle
 	methods
 		%
 		% Purpose
-		%   Instatiate a MrErrorLogger object.
+		%   Instatiate a MrLogFile object.
 		%
 		% Calling Sequence
-		%   OBJ = MrErrorLogger()
-		%     Create an object handle OBJ to a MrErrorLogger object.
+		%   OBJ = MrLogFile()
+		%     Create an object handle OBJ to a MrLogFile object.
 		%
-		%   OBJ = MrErrorLogger(FILENAME)
+		%   OBJ = MrLogFile(FILENAME)
 		%     Messages will be written to a file with name FILENAME.
+		%     Non-standard options are::
+		%       ''       - output to stderr
+		%       'stderr' - output to stderr
+		%       'stdout' - output to stdout
+		%     For MATLAB, stderr and stdout are the console.
 		%
-		%   OBJ = MrErrorLogger(__, 'ParamName', ParamValue)
+		%   OBJ = MrLogFile(FILEID)
+		%     Messages will be written to the file with identifier
+		%     FILEID. Non-standard options are::
+		%       1 - output to stdout
+		%       2 - output to stderr
+		%     For MATLAB, stderr and stdout are the console.
+		%
+		%   OBJ = MrLogFile(__, 'ParamName', ParamValue)
 		%     Any of the parameter name-value pairs listed below.
 		%
 		% Parameters
@@ -163,6 +174,8 @@ classdef MrLogFile < handle
 			warn_traceback    = false;
 			
 			% Default filename
+			%   - FILENAME is the only parameter that is not a
+			%     'ParamName' ParamValue pair.
 			if mod(nargin, 2) == 0
 				logFile  = fullfile( pwd(), ...
 				                     [ 'MrLogFile_' ...
@@ -195,9 +208,19 @@ classdef MrLogFile < handle
 				end
 			end
 			
+			% If a file ID was given, get the file name
+			if isnumeric(logFile)
+				fileID  = logFile;
+				logFile = fopen(fileID);
+			else
+				fileID = [];
+			end
+			
 			% Filename given?
-			if ~isempty(logFile)
+			%   - Ignore 'stdout' and 'stderr' as filenames
+			if isempty(fileID) && ~strcmp(logFile, 'stdout') && ~strcmp(logFile, 'stderr')
 				% Relative name given? -- Make fully qualified.
+				%   - Relative if only the NAME was given, not PATHSTR
 				[pathstr, name, ext] = fileparts(logFile);
 				if ~isempty(ext)
 					name = [name ext];
@@ -237,11 +260,19 @@ classdef MrLogFile < handle
 			% Set object properties
 			obj.alert             = alert;
 			obj.delete_on_destroy = delete_on_destroy;
-			obj.filename          = logFile;
-			obj.traceback         = traceback;
 			obj.noclutter         = noclutter;
 			obj.status            = status;       % Must come after NOCLUTTER
-			obj.warn_traceback    = false;
+			                                      % Set method depend on one another
+			obj.traceback         = traceback;
+			obj.warn_traceback    = warn_traceback;
+			
+			% Set the output destination
+			%   - Do not set both. One will take care of the other.
+			if isempty(fileID)
+				obj.filename = logFile;
+			else
+				obj.fileID = fileID;
+			end
 		end
 		
 		
@@ -250,14 +281,14 @@ classdef MrLogFile < handle
 		%
 		% Calling Sequence
 		%   obj.delete
-		%     Cleanup after the MrErrorlogger object is deleted.
+		%     Cleanup after the MrLogFile object is deleted.
 		%
 		function [] = delete(obj)
 			% Close the file
 			obj.close();
 			
 			% Delete the log file
-			%   - Never delete if we are in error mode.
+			%   - Except if we are in error mode.
 			if obj.delete_on_destroy && obj.status ~= 2
 				if exist( obj.filename, 'file' ) == 2
 					delete, obj.filename
@@ -599,7 +630,7 @@ classdef MrLogFile < handle
 			end
 			
 			% Error text must be a character array
-			assert( ischar(msg) && isrow(msg), 'ERRTEXT must be a scalar string.' );
+			assert( ischar(msg) && isrow(msg), 'MSG must be a scalar string.' );
 			
 			% Alert user
 			if obj.alert
@@ -619,7 +650,7 @@ classdef MrLogFile < handle
 			msg = ['Warning: ' msg ' (' caller ')'];
 			
 			% Write the callstack
-			%   - Add a blank line before the warning.
+			%   - Add a blank line after the warning.
 			%   - AddText will append "\n" to '', thereby adding a blank line.
 			if obj.warn_traceback
 				msg = [ msg stk {''} ];
@@ -710,6 +741,7 @@ classdef MrLogFile < handle
 			obj.status = 2;
 		end
 
+
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	% Set Methods \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -722,9 +754,22 @@ classdef MrLogFile < handle
 		
 		
 		%
-		% Set the name of the log file. Note that setting the
-		% filename will automatically update the object's file ID. It is
-		% unwise for the user to set both.
+		% Purpose
+		%   Set the name of the log file. Note that setting the
+		%   filename will automatically update the object's file ID. It is
+		%   unwise for the user to set both.
+		%
+		% Calling Sequence
+		%   obj.filename(FILENAME)
+		%     Messages will be written to a file with name FILENAME.
+		%     Non-standard options are::
+		%       ''       - output to stderr
+		%       'stderr' - output to stderr
+		%       'stdout' - output to stdout
+		%     For MATLAB, stderr and stdout are the console.
+		%
+		% Parameters
+		%   FILENAME        in, required, type=char
 		%
 		function obj = set.filename(obj, filename)
 			% A string must be given
@@ -744,17 +789,22 @@ classdef MrLogFile < handle
 			% Close the old file
 			obj.close;
 			
-			% Null string resets output file to stderr
-			if isempty(filename) || strcmp(filename, 'stdout') || strcmp(filename, 'stderr')
-				obj.filename = '';
-				obj.fileID   = 2;
-			
-			% Set the file name.
-			%   - File will not be opened until first call to AddText
-			else
-				obj.filename = filename;
-				obj.fileID   = [];
+			% Set the file identifier
+			switch filename
+				case ''
+					obj.fileID = 2;
+				case 'stderr'
+					obj.fileID = 2;
+				case 'stdout'
+					obj.fileID = 1;
+				otherwise
+					obj.fileID = [];
 			end
+			
+			% Set the filename
+			%   - File will not be opened until first call to AddText
+			%   - FILEID will be assigned at that time.
+			obj.filename = filename;
 		end
 		
 		
@@ -762,6 +812,17 @@ classdef MrLogFile < handle
 		% Set the file identifier of the log file. Note that setting the
 		% file ID will automatically update the object's filename. It is
 		% unwise for the user to set both at once.
+		%
+		% Calling Sequence
+		%   obj.fileID(FILEID)
+		%     Messages will be written to the file with identifier
+		%     FILEID. Non-standard options are::
+		%       1 - output to stdout
+		%       2 - output to stderr
+		%     For MATLAB, stderr and stdout are the console.
+		%
+		% Parameters
+		%   FILEID          in, required, type=integer
 		%
 		function obj = set.fileID(obj, fileID)
 			% A scalar integer must be given

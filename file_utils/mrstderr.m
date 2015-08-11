@@ -3,20 +3,26 @@
 %   mrstderr
 %
 % Purpose
-%   Open or assign a file to stderr.
-%
-%   To close the stderr file, set FILEID = 2.
+%   Open or assign a file to stderr. To close the stderr file, do
+%   one of the following:
+%     >> mrstderr('');
+%     >> mrstderr('stderr');
+%     >> mrstderr(2);
 %
 % Calling Sequence
 %   FILEID = mrstderr()
 %     Return the file ID of the file assigned to stderr output.
 %
 %   mrstderr(FILENAME)
-%     Open file named FILENAME and assign its file ID to 
-%     stderr output.
+%     Assign standard error output to the file named FILENAME.
+%     Additional options are::
+%       ''       - MATLAB'S stderr (console)
+%       'stderr' - MATLAB'S stderr (console)
 %
 %   mrstderr(FILEID)
-%     Assign the file ID, FILEID, to stderr output.
+%     Assign the file ID, FILEID, to stderr output. If FILEID = 2,
+%     output will be directed to MATLAB's standard error output
+%     (i.e. the console).
 %
 %   mrstderr(..., KEEP_OPEN)
 %     Keep the old stdout file open. The default is to close the previous file.
@@ -54,7 +60,9 @@ function fileID = mrstderr( file, keep_open )
 	end
 
 	% Check if stderr exists and is valid
-	tf_exist = exist('stderr', 'var') == 1;
+	%   - If stderr does not exist, GLOBAL will create it
+	%     and set stderr = []
+	tf_exist = ~isempty(stderr);
 
 %------------------------------------%
 % Get Current stderr File ID         %
@@ -69,11 +77,18 @@ function fileID = mrstderr( file, keep_open )
 		fileID = stderr;
 
 %------------------------------------%
-% Open A File                        %
+% Use a File Name                    %
 %------------------------------------%
 	elseif ischar( file )
+		%
+		% TODO:
+		%   Determine if the file name is the one already in use.
+		%     - Watch out for relative paths
+		%     - fopen(stderr) will return the name current file.
+		%
+	
 		% Close the previous file
-		if ~keep_open && tf_exist && ~isempty(stderr) && stderr ~= 2
+		if ~keep_open && tf_exist && ~isempty(stderr) && stderr > 2
 			% Indicate which file we are closing
 			old_fname = fopen(stderr);
 			fprintf( ['mrstderr: Closing stderr file "' old_fname '".\n'] );
@@ -83,7 +98,11 @@ function fileID = mrstderr( file, keep_open )
 		end
 	
 		% Open the file
-		fileID = fopen( file, 'w' );
+		if isempty(file) || strcmp(file, 'stderr')
+			fileID = 2
+		else
+			fileID = fopen( file, 'w' );
+		end
 		
 		% Make sure the file could be opened
 		if fileID == -1
@@ -99,7 +118,7 @@ function fileID = mrstderr( file, keep_open )
 		assert( file >= 2, 'FILE must be a file ID >= 2' );
 		
 		% Close the previous file
-		if ~keep_open && tf_exist && ~isempty(stderr) && stderr ~= file
+		if ~keep_open && tf_exist && ~isempty(stderr) && stderr ~= file && stderr > 2
 			% Indicate which file we are closing
 			old_fname = fopen(stderr);
 			fprintf( ['mrstderr: Closing stderr file "' old_fname '".\n'] );
