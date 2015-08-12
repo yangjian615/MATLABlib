@@ -38,6 +38,8 @@
 %                     can be directed to MATLAB's stdout or stderr
 %                     (i.e. the console). Renamed from MrErrorLogger
 %                     to MrLogFile. - MRA
+%   2015-08-11      Fixed bug in callstack when MrLogFile used from main
+%                     level. Delete method can now delete log file. - MRA
 %
 classdef MrLogFile < handle
 
@@ -94,24 +96,45 @@ classdef MrLogFile < handle
 
 			% Get the stack
 			theStack = dbstack();
-			
-			% Add calling routine
-			%   - The calling routine is one up from here
-			caller = theStack(level).name;
-			
-			% Do not count mrfprintf, either.
-			%   - Special case for sister program
-			if strcmp(caller, 'mrfprintf')
-				level = level + 1;
-				caller = theStack(level).name;
-			end
-			
-			% Write the callstack
-			theStack = theStack(level:end);
+			nStack   = length( theStack );
 
-			% Extract the line numbers and program names
-			line_numbers = cellfun(@num2str, { theStack.line }, 'UniformOutput', false );
-			stack        = strcat('    In', {' '}, { theStack.name }, {' at (line '}, line_numbers, ')' );
+			% If LEVEL is greater than the number of elements in the stack, then
+			%   a) MrLogFile was called from the command line.
+			%   b) LEVEL is too large and we need to throw an error.
+			if level == nStack + 1
+				% If we are at the command line, the last entry in the stack
+				% will be from a method internal to MrLogFile.
+				if isempty( regexp( theStack(end).name, 'MrLogFile', 'once' ) )
+					error( 'LEVEL > stack depth.' );
+				else
+					caller = 'Main';
+					stack  = {''};
+				end
+			
+			% LEVEL is ok
+			elseif level <= nStack
+				% Add calling routine
+				%   - The calling routine is one up from here
+				caller = theStack(level).name;
+			
+				% Do not count mrfprintf, either.
+				%   - Special case for sister program
+				if strcmp(caller, 'mrfprintf')
+					level = level + 1;
+					caller = theStack(level).name;
+				end
+			
+				% Write the callstack
+				theStack = theStack(level:end);
+
+				% Extract the line numbers and program names
+				line_numbers = cellfun(@num2str, { theStack.line }, 'UniformOutput', false );
+				stack        = strcat('    In', {' '}, { theStack.name }, {' at (line '}, line_numbers, ')' );
+				
+			% LEVEL > depth
+			else
+				error( 'LEVEL > stack depth' );
+			end
 		end
 	end
 
@@ -286,12 +309,12 @@ classdef MrLogFile < handle
 		function [] = delete(obj)
 			% Close the file
 			obj.close();
-			
+
 			% Delete the log file
 			%   - Except if we are in error mode.
 			if obj.delete_on_destroy && obj.status ~= 2
 				if exist( obj.filename, 'file' ) == 2
-					delete, obj.filename
+					delete(obj.filename);
 				end
 			end
 		end
