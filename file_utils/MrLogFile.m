@@ -40,6 +40,7 @@
 %                     to MrLogFile. - MRA
 %   2015-08-11      Fixed bug in callstack when MrLogFile used from main
 %                     level. Delete method can now delete log file. - MRA
+%   2015-08-21      Filename of '' did not direct to stderr. Fixed. - MRA
 %
 classdef MrLogFile < handle
 
@@ -116,20 +117,30 @@ classdef MrLogFile < handle
 				% Add calling routine
 				%   - The calling routine is one up from here
 				caller = theStack(level).name;
-			
+
 				% Do not count mrfprintf, either.
 				%   - Special case for sister program
 				if strcmp(caller, 'mrfprintf')
-					level = level + 1;
-					caller = theStack(level).name;
+					% Was mrfprintf called from Main?
+					if level + 1 > nStack
+						caller   = 'Main';
+						stack    = {''};
+						theStack = [];
+					else
+						level    = level + 1;
+						caller   = theStack(level).name;
+						theStack = theStack(level:end);
+					end
+				else
+					theStack = theStack(level:end);
 				end
-			
-				% Write the callstack
-				theStack = theStack(level:end);
 
-				% Extract the line numbers and program names
-				line_numbers = cellfun(@num2str, { theStack.line }, 'UniformOutput', false );
-				stack        = strcat('    In', {' '}, { theStack.name }, {' at (line '}, line_numbers, ')' );
+				% Convert the callstack to a cell array of strings
+				%   - Extract the line numbers and program names
+				if ~isempty(theStack)
+					line_numbers = cellfun(@num2str, { theStack.line }, 'UniformOutput', false );
+					stack        = strcat('    In', {' '}, { theStack.name }, {' at (line '}, line_numbers, ')' );
+				end
 				
 			% LEVEL > depth
 			else
@@ -238,10 +249,10 @@ classdef MrLogFile < handle
 			else
 				fileID = [];
 			end
-			
+
 			% Filename given?
-			%   - Ignore 'stdout' and 'stderr' as filenames
-			if isempty(fileID) && ~strcmp(logFile, 'stdout') && ~strcmp(logFile, 'stderr')
+			%   - Ignore '', 'stdout', and 'stderr' as filenames
+			if isempty(fileID) && sum( ismember({'', 'stdout', 'stderr'}, logFile) ) == 0
 				% Relative name given? -- Make fully qualified.
 				%   - Relative if only the NAME was given, not PATHSTR
 				[pathstr, name, ext] = fileparts(logFile);

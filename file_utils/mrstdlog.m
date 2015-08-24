@@ -56,6 +56,7 @@
 %   2015-08-08      Default output to stderr. Accept MrLogFile object
 %                     as input. - MRA
 %   2015-08-11      A FILEID can be given. - MRA
+%   2015-08-21      If FILE not given, check if old object is valid. - MRA
 %
 function logfile = mrstdlog( file, varargin )
 
@@ -74,6 +75,11 @@ function logfile = mrstdlog( file, varargin )
 		% Create a default logger object that directs output
 		% to stderr -- the console.
 		if ~tf_exist
+			stdlog = MrLogFile('');
+		end
+		
+		% Is the log file valid?
+		if ~stdlog.isvalid()
 			stdlog = MrLogFile('');
 		end
 
