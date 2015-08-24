@@ -24,6 +24,7 @@
 %
 % History:
 %   2015-04-13      Written by Matthew Argall
+%   2015-08-18      Single vectors return column if V1 is column. - MRA
 %
 function vcross = mrvector_cross(v1, v2)
 
@@ -47,8 +48,9 @@ function vcross = mrvector_cross(v1, v2)
 %------------------------------------%
 	if v1colrow && v2colrow
 		vcross = cross( v1, v2 );
-		
-		if iscolumn(v1)
+
+		% Return column if column was given.
+		if iscolumn(v1) && isrow(vcross)
 			vcross = vcross';
 		end
 

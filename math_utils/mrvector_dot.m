@@ -17,7 +17,7 @@
 %   V2              in, required, type=3xN or Nx3 double
 %
 % Returns
-%   VCROSS          out, required, type=3xN or Nx3 double
+%   VDOT            out, required, type=3xN or Nx3 double
 %
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
@@ -88,25 +88,25 @@ function vdot = mrvector_dot(v1, v2)
 % 3xN dot 3xN                        %
 %------------------------------------%
 	elseif v1size(1) == 3 && v2size(1) == 3
-		vcross = dot(v1, v2, 1);
+		vdot = dot(v1, v2, 1);
 
 %------------------------------------%
 % Nx3 dot Nx3                        %
 %------------------------------------%
 	elseif v1size(2) == 3 && v2size(2) == 3
-		vcross = dot(v1, v2, 2);
+		vdot = dot(v1, v2, 2);
 
 %------------------------------------%
 % Nx3 dot 3xN                        %
 %------------------------------------%
 	elseif v1size(2) == 3 && v2size(1) == 3
-		vcross = dot(v1, v2', 2);
+		vdot = dot(v1, v2', 2);
 
 %------------------------------------%
 % 3xN dot Nx3                        %
 %------------------------------------%
 	elseif v1size(2) == 3 && v2size(1) == 3
-		vcross = dot(v1, v2', 1);
+		vdot = dot(v1, v2', 1);
 		
 	% Otherwise
 	else
