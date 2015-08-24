@@ -459,11 +459,21 @@ classdef MrLogFile < handle
 		%   TEXT            in, required, type=char/cell
 		%
 		function [] = stderr(obj, text)
+			%
+			% TODO:
+			%   Make as robust as AddError
+			%     - Accept MExceptions
+			%     - check lasterror
+			%
+		
 			% Get the file identifier of stdout
 			fileID = mrstderr();
 			
 			% Add text to stdout
-			obj.AddText(fileID, text, 'AddCaller', true, 'Level', 4);
+			obj.AddText(fileID, text, ...
+			            'AddCaller',    true, ...
+			            'AddTraceback', true, ...
+			            'Level',        4);
 		end
 		
 		
