@@ -149,7 +149,7 @@ function Q_new = mrquaternion_interp(t, Q, t_new, arg4)
 	elseif tf_slerp
 		if isempty(dQ) || tf_reset
 			% Find the derivative of Q (??)
-			dQ = mrquaternion_multiply( Q(:,1:nQ-1), Q(:,2:end), 'InvertQ1' );
+			dQ = mrquaternion_multiply( Q(:,1:end-1), Q(:,2:end), 'InvertQ1' );
 			
 			% Normalize the quaternions to get the smallest path
 			idx = find( dQ(4,:) < 0 );
@@ -175,7 +175,7 @@ function Q_new = mrquaternion_interp(t, Q, t_new, arg4)
 		% Smoothly interpolate
 		Q_pow = mrquaternion_power( dQ(:,ii), hh );
 		Q_new = mrquaternion_multiply( Q(:,ii),  Q_pow );
-	
+
 	% SPLINE
 	else
 		% Interpolate

@@ -378,7 +378,7 @@ classdef MrLogFile < handle
 		%
 		function status = open(obj, newLogFile, delete_current)
 			% Assume we are unsuccessful
-			success = false;
+			status = false;
 			
 			% Delete the current file
 			if nargin < 3

@@ -121,7 +121,7 @@ function fileID = mrstdout( file, keep_open )
 		assert( file == 1 || file > 2, 'FILE must be a file ID > 2' );
 		
 		% Close the previous file
-		if ~keep_open && tf_exist && ~isempty(stdout) && stdout ~= file && file > 2
+		if ~keep_open && tf_exist && ~isempty(stdout) && stdout ~= file && stdout > 2
 			% Indicate which file we are closing
 			old_fname = fopen(stdout);
 			fprintf( ['mrstdout: Closing stdout file "' old_fname '".\n'] );
