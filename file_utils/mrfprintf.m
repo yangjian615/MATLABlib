@@ -17,12 +17,10 @@
 %     Instead of supplying a fileID, you can specify STDSTR, a character
 %     array that names the standard output to which you want the text
 %     printed. Options are
-%       'stdout'  -- Adds text  to standard output
 %       'stderr'  -- Adds error to standard error
-%       'stdlog'  -- Adds error to standard log file.
+%       'stdout'  -- Adds text to standard output
 %       'logerr'  -- Adds error to standard log file.
-%       'logout'  -- Adds text  to standard output, routed through log object.
-%       'logtext' -- Adds text  to standard log file.
+%       'logtext' -- Adds text to standard log file.
 %       'logwarn' -- Adds warning to standard log file.
 %
 % Parameters
@@ -37,6 +35,7 @@
 %
 % History:
 %   2015-08-09      Written by Matthew Argall
+%   2016-04-01      Removed the "stdlog" and "logout" options. - MRA
 %
 function [] = mrfprintf( varargin )
 
@@ -65,7 +64,7 @@ function [] = mrfprintf( varargin )
 			fprintf(fileID, varargin{2:end});
 	
 	%------------------------------------%
-	% LOGFILE                            %
+	% LOGTEXT                            %
 	%------------------------------------%
 		%
 		% TODO:
@@ -78,24 +77,15 @@ function [] = mrfprintf( varargin )
 		%   file with the stdout and stderr methods?
 		%
 	
-		elseif ~isempty( regexp( varargin{1}, '^(stdlog|logout|logtext)$', 'once' ) )
+		elseif strcmp( varargin{1}, 'logtext' )
 			% Convert text to string
 			text = sprintf( varargin{2:end} );
 			
 			% Get the standard error logger object.
 			logfile = mrstdlog();
 
-			% Add the error, warning, or message
-			switch varargin{1}
-				case 'stdlog'
-					logfile.AddError( text );
-				case 'logout'
-					logfile.stdout( text );
-				case 'logtext'
-					logfile.AddText( text );
-				otherwise
-					% Not possible
-			end
+			% Add the text
+			logfile.AddText( text );
 		
 	%------------------------------------%
 	% LOGERR                             %

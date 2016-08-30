@@ -63,7 +63,7 @@ function fileID = mrstdout( file, keep_open )
 	% Check if stderr exists and is valid
 	%   - If stdout does not exist, GLOBAL will create it
 	%     and set stdout = []
-	tf_exist = ~isempty(stdout)
+	tf_exist = ~isempty(stdout);
 
 %------------------------------------%
 % Get Current stderr File ID         %
