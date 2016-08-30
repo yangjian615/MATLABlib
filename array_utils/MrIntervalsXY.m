@@ -25,6 +25,10 @@
 %                   If true, the start and stop index of each interval will
 %                     be adjusted so that the corresponding values in X and
 %                     Y are as close as possible.
+%   'TolX'          in, optional, type = integer
+%                   Tolerance on the data spacing in X, in number of points.
+%   'TolY'          in, optional, type = integer
+%                   Tolerance on the data spacing in Y, in number of points.
 %
 % Returns:
 %   IX:             out, required, type = 2xN integer array
@@ -36,13 +40,16 @@
 % History:
 %   2015-03-26      Written by Matthew Argall
 %   2015-10-26      Added the "Sync" option. - MRA
+%   2015-12-07      Fixed many bugs in _Remove and _Sync. - MRA
+%   2016-06-04      _Remove did not index properly when intervals were removed. Fixed. - MRA
 %
 function [ix iy] = MrIntervalsXY(X, Y, varargin)
-
 
 	% Defaults
 	tf_remove = false;
 	tf_sync   = false;
+	x_tol     = 1;
+	y_tol     = 1;
 
 	% Step through each ParamName-ParamValue pair.
 	nOptArgs = length(varargin);
@@ -53,6 +60,10 @@ function [ix iy] = MrIntervalsXY(X, Y, varargin)
 				tf_remove = varargin{ii+1};
 			case 'Sync'
 				tf_sync = varargin{ii+1};
+			case 'TolX'
+				x_tol = varargin{ii+1};
+			case 'TolY'
+				y_tol = varargin{ii+1};
 			otherwise
 				error( ['Unknown parameter name "' varargin{ii} '".'] )
 		end
@@ -64,16 +75,15 @@ function [ix iy] = MrIntervalsXY(X, Y, varargin)
 
 	% Find indices within the time arrays that bracket continuous data
 	% intervals.
-	ix = MrIntervalsX( X );
-	iy = MrIntervalsX( Y );
+	ix = MrIntervalsX( X, [], x_tol );
+	iy = MrIntervalsX( Y, [], y_tol );
 
 %------------------------------------%
 % Remove Intervals                   %
 %------------------------------------%
-
 	% Remove from FGM
 	if tf_remove
-		% Extract the data values the define the interval
+		% Extract the data values that define the interval
 		xx = X(ix);
 		yy = Y(iy);
 		
@@ -90,18 +100,16 @@ function [ix iy] = MrIntervalsXY(X, Y, varargin)
 		if ydims(1) == 1
 			yy = yy';
 		end
-		
+
 		% Remove intervals
-		ix = MrIntervalsXY_Remove( ix, iy, xx, yy );
-		iy = MrIntervalsXY_Remove( iy, ix, xx, yy );
+		[xx, ix] = MrIntervalsXY_Remove( ix, iy, xx, yy );
+		[yy, iy] = MrIntervalsXY_Remove( iy, ix, yy, xx );
 	end
 
 %------------------------------------%
 % Sync Times                         %
 %------------------------------------%
-
-	% Remove from FGM
-	if tf_sync
+	if tf_sync && ~isempty(ix)
 		[ix, iy] = MrIntervalsXY_Sync( X, Y, ix, iy  );
 	end
 end
@@ -116,7 +124,7 @@ end
 %   vector of points.
 %
 % Calling Sequence:
-%   IX = fsm_intervals_remove(IX, IY, X, Y);
+%   IX = MrIntervalsXY_Remove(IX, IY, X, Y);
 %       IX and IY are indices into two different monotonic, evenly spaced
 %       arrays, A and B, that define the start IX(1,:) and end IX(2,:) of
 %       continuous subsets of data. X and Y are the values of A and B at
@@ -136,32 +144,51 @@ end
 % MATLAB release(s) MATLAB 7.14.0.739 (R2012a)
 % Required Products None
 %
-function ix = MrIntervalsXY_Remove(ix, iy, x, y)
+function [x, ix] = MrIntervalsXY_Remove(ix, iy, x, y)
 
-	nx = length( ix(1, :) );
-	ny = length( iy(1, :) );
+	% Simple case
+	if isempty(iy)
+		ix = zeros(2, 0);
+	end
 
-	% Remove FGM intervals that fall entirely within an Y data gap (and
-	% vice versa).
+	% Number of intervals to check.
+	nx = size( ix, 2 );
+	ny = size( iy, 2 );
+
+	% Remove X intervals that fall entirely within an Y data gap
+	%   - Step through all intervals in IX regardless of how many
+	%     there are in IY.
 	ii = 1;
 	jj = 1;
-	while ii <= nx && jj <= ny
-		% After which interval in Y does X begin?
-		ibegin = find( x(1, ii) > y(2, jj:end), 1, 'first' );
+	while ii <= nx
+		% X begins before the end       of which interval in Y?
+		%   ends   after      beginning                       ?
+		ibegin = find( x(1, ii) < y(2, jj:end), 1, 'first' );
+		iend   = find( x(2, ii) > y(1, jj:end), 1, 'last' );
 		
-		% If the X interval ends before the next SCM interval begins, junk.
-		if ~isempty(ibegin)
-			if x(2, ii) < y(1, jj+ibegin)
-				x(:, ii)  = [];
-				ix(:, ii) = [];
-				nx        = nx - 1;
-			else
-				ii = ii + 1;
+		% Intervals do not overlap
+		%   - X before  Y ===> iend   = []
+		%   - X after   Y ===> ibegin = []
+		%   - X between Y ===> ibegin > iend
+		if isempty(ibegin) || isempty(iend) || ibegin > iend
+			x(:, ii)  = [];
+			ix(:, ii) = [];
+			nx        = nx - 1;
+		
+		% Intervals do overlap
+		%   - ibegin == iend if X overhangs Y
+		%   - ibegin < iend if Y overhangs X
+		else
+			% Skip over Y intervals that have already been covered.
+			if iend ~= ibegin
+				jj = jj + iend;
 			end
 		
-			% Push ahead in Y.
-			jj = jj + ibegin;
-		else
+			% Next interval
+			%   - If we remove the current element from X, we do not
+			%     want to increment the index. Instead, the total
+			%     number of elements NX will decrease until the loop
+			%     condition is not satisfied.
 			ii = ii + 1;
 		end
 	end
@@ -214,12 +241,12 @@ function [ox, oy] = MrIntervalsXY_Sync(x, y, ix, iy)
 
 	% Step through each interval of X.
 	for ii = 1 : n
-		% Which interval starts/ends first
+		% Which interval starts last/ends first
 		[tfirst, ifirst] = max( [x(ox(1,ii)), y(oy(1,ii))] );
 		[tlast,  ilast]  = min( [x(ox(2,ii)), y(oy(2,ii))] );
-		
+
 	%------------------------------------%
-	% X Starts First                     %
+	% X Starts Last                      %
 	%------------------------------------%
 		if ifirst == 1
 			% Keep the start index for X
@@ -228,17 +255,17 @@ function [ox, oy] = MrIntervalsXY_Sync(x, y, ix, iy)
 			% Search for the closest starting point in Y
 			%   - First point >= X
 			iy0 = find(y >= x(ix0), 1, 'first');
-			
+
 			% Check if the previous point is closer
-			if iy0 ~= 1 && abs(y(iy0-1) - x(ix0)) < abs(y(iy0) - x(ix0))
+			if ~isempty(iy0) && iy0 ~= 1 && abs(y(iy0-1) - x(ix0)) < abs(y(iy0) - x(ix0))
 				iy0 = iy0 - 1;
 			end
 		
 	%------------------------------------%
-	% Y Starts First                     %
+	% Y Starts Last                      %
 	%------------------------------------%
 		else
-			% Keep the start index for X
+			% Keep the start index for Y
 			iy0 = oy(1,ii);
 			
 			% Search for the closes starting point in Y
@@ -246,7 +273,7 @@ function [ox, oy] = MrIntervalsXY_Sync(x, y, ix, iy)
 			ix0 = find(x >= y(iy0), 1, 'first');
 			
 			% Check if the previous point is closer
-			if ix0 ~= 1 && abs(x(ix0-1) - y(iy0)) < abs(x(ix0) - y(iy0))
+			if ~isempty(ix0) && ix0 ~= 1 && abs(x(ix0-1) - y(iy0)) < abs(x(ix0) - y(iy0))
 				ix0 = ix0 - 1;
 			end
 		end
@@ -263,7 +290,7 @@ function [ox, oy] = MrIntervalsXY_Sync(x, y, ix, iy)
 			iy1 = find(y >= x(ix1), 1, 'first');
 		
 			% Check if the previous point is closer
-			if abs(y(iy1-1) - x(ix1)) < abs(y(iy1) - x(ix1))
+			if ~isempty(iy1) && iy1 > 1 && abs(y(iy1-1) - x(ix1)) < abs(y(iy1) - x(ix1))
 				iy1 = iy1 - 1;
 			end
 		
@@ -279,7 +306,7 @@ function [ox, oy] = MrIntervalsXY_Sync(x, y, ix, iy)
 			ix1 = find(x >= y(iy1), 1, 'first');
 
 			% Check if the previous point is closer
-			if abs(x(ix1-1) - y(iy1)) < abs(x(ix1) - y(iy1))
+			if ~isempty(ix1) && ix1 > 1 && abs(x(ix1-1) - y(iy1)) < abs(x(ix1) - y(iy1))
 				ix1 = ix1 - 1;
 			end
 		end
