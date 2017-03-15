@@ -57,7 +57,8 @@
 %                     about determining the system root on Windows machines. Count
 %                     each segment of FILEPATH as a whole word by surrounding with
 %                     "^" and "$" in regular expressions. - MRA
-%   2015-05-28      Chick if isunix instead of ismac to include linux machines. - MRA
+%   2015-05-28      Check if isunix instead of ismac to include linux machines. - MRA
+%   2016-09-10      Handle cases when the file path given does not exist. - MRA
 %
 function [tree, count] = MrFile_Finder(filepath)
 
@@ -124,7 +125,14 @@ function [tree, count] = MrFile_Finder(filepath)
 %------------------------------------%
 
 	% Change to the directory
-	cd(root);
+	try
+		cd(root);
+	catch ME
+		cd(path);
+		count = 0;
+		tree  = {};
+		return
+	end
 	
 	% Get the directory contents
 	[pathOut, count] = MrLS('Regex', subpattern);
@@ -132,7 +140,8 @@ function [tree, count] = MrFile_Finder(filepath)
 	% No matches
 	if count == 0
 		cd(path);
-		tree = {};
+		count = 0;
+		tree  = {};
 		return
 	end
 	
