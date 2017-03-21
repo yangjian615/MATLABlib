@@ -77,7 +77,7 @@ function [] = mrfprintf( varargin )
 			fileID = mrstderr();
 		
 			% Write to file
-			if isempty( msg)
+			if isempty( msg )
 				fprintf(fileID, varargin{2:end});
 			else
 				fprintf(fileID, msg);
