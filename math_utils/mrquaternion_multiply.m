@@ -72,6 +72,7 @@
 %                     an IDL program by Craig B. Markwardt. See
 %                     his webpage for details:
 %                       http://cow.physics.wisc.edu/~craigm/idl/idl.html
+%   2015-08-29      Fixed typos in multiplication step. - MRA
 %
 function Q = mrquaternion_multiply(Q1, Q2, arg3, arg4)
 
@@ -154,10 +155,10 @@ function Q = mrquaternion_multiply(Q1, Q2, arg3, arg4)
 	% Compute the quaternion
 	Q      = zeros( max([n1 n2]), 4 );
 	Q(:,1) =  Q1(:,1).*Q2(:,4) + Q1(:,2).*Q2(:,3) - Q1(:,3).*Q2(:,2) + Q1(:,4).*Q2(:,1);
-	Q(:,2) = -Q1(:,1).*Q2(:,3) + Q1(:,2).*Q2(:,2) + Q1(:,3).*Q2(:,1) + Q1(:,4).*Q2(:,2);
+	Q(:,2) = -Q1(:,1).*Q2(:,3) + Q1(:,2).*Q2(:,4) + Q1(:,3).*Q2(:,1) + Q1(:,4).*Q2(:,2);
 	Q(:,3) =  Q1(:,1).*Q2(:,2) - Q1(:,2).*Q2(:,1) + Q1(:,3).*Q2(:,4) + Q1(:,4).*Q2(:,3);
-	Q(:,4) = -Q1(:,1).*Q2(:,1) - Q1(:,2).*Q2(:,4) - Q1(:,3).*Q2(:,3) + Q1(:,4).*Q2(:,4);
-	
+	Q(:,4) = -Q1(:,1).*Q2(:,1) - Q1(:,2).*Q2(:,2) - Q1(:,3).*Q2(:,3) + Q1(:,4).*Q2(:,4);
+
 	% Return 4xN if Q1 was 4xN
 	if sz1(1) == 4 && sz1(2) ~= 3
 		Q = Q';

@@ -32,6 +32,8 @@
 %
 % History:
 %   2015-04-08      Written by Matthew Argall
+%   2016-10-25      Change version to numbers. Comparison of version numbers
+%                     with >= 2 digits. - MRA
 %
 function result = MrFile_VersionCompare(file1, file2, regex)
 
@@ -49,20 +51,20 @@ function result = MrFile_VersionCompare(file1, file2, regex)
 	vfile2 = regexp(file2, regex, 'tokens');
 	
 	% Get rid of the nested cells
-	vfile1 = vfile1{1};
-	vfile2 = vfile2{1};
-	
-	% Compare	
+	vfile1 = cellfun(@str2num, vfile1{1});
+	vfile2 = cellfun(@str2num, vfile2{1});
+
+	% Compare
 	ii     = 1;
 	result = 0;
 	while result == 0 && ii <= length(vfile1)
 		
 		% Newer version
-		if vfile1{ii} > vfile2{ii}
+		if vfile1(ii) > vfile2(ii)
 			result = 1;
 			
 		% Older version
-		elseif vfile1{ii} < vfile2{ii}
+		elseif vfile1(ii) < vfile2(ii)
 			result = -1;
 		end
 		

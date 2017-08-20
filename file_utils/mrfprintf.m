@@ -9,25 +9,37 @@
 %       error logger files.
 %
 % Calling Sequence
-%   mrfprintf( [fprintf Parameters] )
-%     Write text exactly the same as fprintf would. Use any parameters
-%     accepted by the fprintf function.
-%
-%   mrstderr( STDSTR, __ )
-%     Instead of supplying a fileID, you can specify STDSTR, a character
-%     array that names the standard output to which you want the text
-%     printed. Options are
-%       'stdout'  -- Adds text  to standard output
+%   mrfprintf( fileID, formatSpec, A1, A2, ..., An )
+%     Applies the formatSpec to all elements of arrays A1,...An in column order, and
+%     writes the data to a text file. fprintf uses the encoding scheme specified in
+%     the call to fopen. In place of a fileID returned by fopen, a character array
+%     that names the standard output to which you want the text printed. Options are:
 %       'stderr'  -- Adds error to standard error
-%       'stdlog'  -- Adds error to standard log file.
+%       'stdout'  -- Adds text to standard output
 %       'logerr'  -- Adds error to standard log file.
-%       'logout'  -- Adds text  to standard output, routed through log object.
-%       'logtext' -- Adds text  to standard log file.
+%       'logtext' -- Adds text to standard log file.
 %       'logwarn' -- Adds warning to standard log file.
 %
+%   mrfprintf( formatSpec, A1, A2, ..., An )
+%     Formats data and displays the results on the screen.
+%
+%   mrfprintf( DATA )
+%     Displays the contents of cell array DATA the screen, one element per line.
+%     All elements must be character arrays.
+%
+%   mrfprintf( formatSpec, DATA )
+%     Formats data in cell array DATA and displays the results on the screen.
+%
+%   mrfprintf( fileID, formatSpec, DATA )
+%     Applies the formatSpec to all elements of cell array DATA in column order, and
+%     writes the data to a text file. mrfprintf uses the encoding scheme specified in
+%     the call to fopen.
+%
 % Parameters
-%   STDSTR       in, optional, type=char
-%   KEEP_OPEN    in, optional, type=boolean, default=false
+%   FILEID       in, optional, type=char/integer
+%   FORMATSPEC   in, optional, type=char
+%   A1, ..., An  in, optional, type=any
+%   DATA         in, optional, type=cell
 %
 % See Also:
 %   mrstdout, mrstderr, mrstdlog, MrErrorLogger
@@ -37,9 +49,22 @@
 %
 % History:
 %   2015-08-09      Written by Matthew Argall
+%   2016-04-01      Removed the "stdlog" and "logout" options. - MRA
+%   2016-10-01      Cell arrays may be given. - MRA
 %
 function [] = mrfprintf( varargin )
-
+	%
+	% Will return message for
+	%   - mrfprintf( DATA )
+	%   - mrfprintf( formatSpec, DATA )
+	%   - mrfprintf( fileID, formatSpec, DATA )
+	%
+	% Will return empty string for
+	%   - mrfprintf( formatSpec, A1, A2, ..., An )
+	%   - mrfprintf( fileID, formatSpec, A1, A2, ..., An )
+	%
+	msg = mrfprintf_get_msg();
+	
 %------------------------------------%
 % STDOUT, STDERR, STDLOG, etc.       %
 %------------------------------------%
@@ -51,8 +76,12 @@ function [] = mrfprintf( varargin )
 			% Get the file ID of stderr
 			fileID = mrstderr();
 		
-			% Select stderr as the file id
-			fprintf(fileID, varargin{2:end});
+			% Write to file
+			if isempty( msg )
+				fprintf(fileID, varargin{2:end});
+			else
+				fprintf(fileID, msg);
+			end
 	
 	%------------------------------------%
 	% STDOUT                             %
@@ -62,55 +91,55 @@ function [] = mrfprintf( varargin )
 			fileID = mrstdout();
 		
 			% Select stderr as the file id
-			fprintf(fileID, varargin{2:end});
+			if isempty( msg )
+				fprintf(fileID, varargin{2:end});
+			else
+				fprintf(fileID, msg);
+			end
 	
 	%------------------------------------%
-	% LOGFILE                            %
+	% LOGTEXT                            %
 	%------------------------------------%
-		%
-		% TODO:
-		%   If 'logout' outputs to standard output, routed through
-		%   the log object, should 'logerr' not output to standard
-		%   error, routed through the log object?
-		%
-		%   Or perhaps 'log*' should all go into the log file. But
-		%   then, how to direct to stdout and stderr via the log
-		%   file with the stdout and stderr methods?
-		%
-	
-		elseif ~isempty( regexp( varargin{1}, '^(stdlog|logout|logtext)$', 'once' ) )
-			% Convert text to string
-			text = sprintf( varargin{2:end} );
+		elseif strcmp( varargin{1}, 'logtext' )
 			
 			% Get the standard error logger object.
 			logfile = mrstdlog();
-
-			% Add the error, warning, or message
-			switch varargin{1}
-				case 'stdlog'
-					logfile.AddError( text );
-				case 'logout'
-					logfile.stdout( text );
-				case 'logtext'
-					logfile.AddText( text );
-				otherwise
-					% Not possible
+			
+			% Text must be formatted
+			if isempty( msg )
+				% Convert text to string
+				text = sprintf( varargin{2:end} );
+				logfile.AddText( text );
+			
+			% The log file can handle cell arrays, but only if
+			% all elements are strings
+			%   - mrprintf( fileID, DATA )
+			elseif iscell( varargin{2} )
+				logfile.AddText( varargin{2} );
+			
+			% Use the formatted string
+			%   - mrprintf( fileID, formatSpec, DATA )
+			else
+				logfile.AddText( msg );
 			end
-		
+
 	%------------------------------------%
 	% LOGERR                             %
 	%------------------------------------%
 		elseif strcmp( varargin{1}, 'logerr' )
-			% Error message structure
-			if isobject(varargin{2})
-				msg = varargin{2};
-			else
-				msg = sprintf( varargin{2:end} );
-			end
-			
 			% Get the error logger
 			logfile = mrstdlog();
 			
+			% Error message structure
+			if isobject(varargin{2})
+				msg = varargin{2};
+			end
+			
+			% Format inputs
+			if isempty(msg)
+				msg = sprintf( varargin{2:end} );
+			end
+				
 			% Add the error
 			logfile.AddError(msg);
 		
@@ -118,6 +147,9 @@ function [] = mrfprintf( varargin )
 	% LOGWARN                            %
 	%------------------------------------%
 		elseif strcmp( varargin{1}, 'logwarn' )
+			% Get the log file
+			logfile = mrstdlog();
+			
 			% Was a message identifier given?
 			%   - component:mneumonic
 			%   - Must begin with a letter
@@ -128,11 +160,12 @@ function [] = mrfprintf( varargin )
 				msg   = sprintf( varargin{3:end} );
 			else
 				msgID = '';
-				msg   = sprintf( varargin{2:end} );
+				
+				% Format the inputs
+				if isempty( msg )
+					msg = sprintf( varargin{2:end} );
+				end
 			end
-			
-			% Get the log file
-			logfile = mrstdlog();
 
 			% Add the warning
 			logfile.AddWarning(msgID, msg);
@@ -140,15 +173,85 @@ function [] = mrfprintf( varargin )
 	%------------------------------------%
 	% Regular fprinf                     %
 	%------------------------------------%
+		% Could be 
+		%   - fprintf( formatSpec, DATA )
+		%   - fprintf( formatSpec, A1, ..., An )
 		else
-			fprintf( varargin{:} );
+			if isempty( msg )
+				fprintf( varargin{:} );
+			else
+				fprintf( msg );
+			end
 		end
 
 %------------------------------------%
 % Regular fprinf                     %
 %------------------------------------%
+	% Could be 
+	%   - fprintf( DATA )
+	%   - fprintf( fileID, formatSpec, A1, ..., An)
 	else
-		fprintf( varargin{:} );
+		if isempty( msg )
+			fprintf( varargin{:} );
+		else
+			fprintf( msg );
+		end
+	end
+
+% ----------------------------------------------------------------------------------------
+% ****************************************************************************************
+% ----------------------------------------------------------------------------------------
+	%
+	% Name
+	%   mrfprintf_get_msg
+	%
+	% Purpose
+	%   Extract text from the optional arguments given to mrfprinf. Allow the message
+	%   to be given in the form of a cell array instead of multiple inputs.
+	%
+	% Calling Sequence
+	%   msg = mrfprintf_get_msg()
+	%     Create the message MSG from the optional arguments given to mrfprintf.
+	%
+	% MATLAB release(s): 9.0.0.341360 (R2016a)
+	% Required Products: None
+	%
+	% History:
+	%   2015-08-09      Written by Matthew Argall
+	%
+	function txt = mrfprintf_get_msg
+		% Number of arguments given
+		nArgs = length(varargin);
+		
+		% Determine if a format spec was given
+		%   - Test on '%3$0-12.5bu'
+		%   - Example from http://www.mathworks.com/help/matlab/ref/sprintf.html?searchHighlight=sprintf#inputarg_formatSpec
+		fmt = '%([0-9]+$)?([ -+0#])?([0-9]+(.[0-9]+)?)?([])?[diouxXfeEgGcs]';
+		
+		% The last argument can be a cell array
+		%   a) mrfprintf( cell )
+		%   b) mrfprintf( formatSpec, cell )
+		%   c) mrfprintf( fileID, formatSpec, cell )
+		if iscell( varargin{end} )
+			% Is the second to last argument a format spec?
+			if nArgs > 2 && ischar( varargin{end-1} )
+				tf_fmt = ~isempty( regexp( varargin{2}, fmt, 'once' ) );
+			else
+				tf_fmt = false;
+			end
+			
+			% If it is a format spec
+			if tf_fmt
+				% Use sprintf to convert them to text.
+				txt = sprintf( varargin{end-1}, varargin{end} );
+			else
+				% Must be strings. Each string on a new line.
+				assert( all( cellfun(@ischar, varargin{end} ) ), 'Without formatSpec, cell contents must be strings.' );
+				txt = sprintf( '%s\n', varargin{end}{:} );
+			end
+		else
+			txt = '';
+		end
 	end
 end
 
