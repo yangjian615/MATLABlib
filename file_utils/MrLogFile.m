@@ -616,9 +616,8 @@ classdef MrLogFile < handle
 						errText = varargin{1};
 						errID   = '';
 					end
-						
-					assert( isrow(errID),   'ERRID must be a scalar string.' );
-					assert( isrow(errText), 'ERRTEXT must be a scalar string.' );
+					assert( isempty(errID) || isrow(errID), 'ERRID must be a scalar string.' );
+					assert( isrow(errText),                 'ERRTEXT must be a scalar string.' );
 					
 					% Get callstack and calling program
 					%   1 = obj.callstack
@@ -766,9 +765,9 @@ classdef MrLogFile < handle
 			% Write to file (and display).
 			nLines = length(text);
 			for ii = 1 : nLines
-				fprintf( fileID, [ text{ii} '\n' ] );
+				fprintf( fileID, '%s\n', text{ii} );
 				if display
-					fprintf( [ text{ii} '\n' ] );
+					sprintf( '%s\n', text{ii} );
 				end
 			end
 			

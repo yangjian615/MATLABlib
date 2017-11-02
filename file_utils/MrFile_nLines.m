@@ -42,7 +42,7 @@ function nLines = MrFile_nLines(file)
 	
 	% Number of lines
 	nLines = 0;
-  line   = '';
+	line   = '';
 
 	while ~feof(fileID) %ischar(line)
 		line   = fgetl(fileID);

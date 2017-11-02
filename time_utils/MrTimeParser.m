@@ -119,12 +119,12 @@ end
 function time_parts = MrTimeParser_Breakdown(time, pattern)
 
 	% Number of times given
-	if iscell(time)
-		nTimes = length(time);
-	else
+	if ischar(time)
 		assert(isrow(time), 'TIME must be a time string or cell array of time strings.')
-		nTimes = 1;
+		time = { time };
 	end
+	assert( MrTokens_IsMatch(time{1}, pattern), sprintf('TIME (%s) does not match PATTERN (%s).', time{1}, pattern) );
+	nTimes = length(time);
 
 %------------------------------------%
 % Get Tokens and Time Parts          %
@@ -143,35 +143,33 @@ function time_parts = MrTimeParser_Breakdown(time, pattern)
 	assert( max(dims) == nTimes, 'Input time string did not match input pattern.' );
 
 	% Must get rid of nested cells
-	if iscell(time)
-		parts = vertcat(parts{:});
-	end
+	parts = vertcat(parts{:});
 	parts = vertcat(parts{:});
 
 %------------------------------------%
 % Allocate Memory                    %
 %------------------------------------%
-    year      = cell(1, nTimes);
-    yr        = cell(1, nTimes);
-    doy       = cell(1, nTimes);
-    month     = cell(1, nTimes);
-    cmonth    = cell(1, nTimes);
-    calmo     = cell(1, nTimes);
-    weekday   = cell(1, nTimes);
-    wkday     = cell(1, nTimes);
-    day       = cell(1, nTimes);
-    hour      = cell(1, nTimes);
-    hr        = cell(1, nTimes);
-    minute    = cell(1, nTimes);
-    second    = cell(1, nTimes);
-    decimal   = cell(1, nTimes);
-    milli     = cell(1, nTimes);
-    micro     = cell(1, nTimes);
-    nano      = cell(1, nTimes);
-    pico      = cell(1, nTimes);
-    am_pm     = cell(1, nTimes);
-    offset    = cell(1, nTimes);
-    time_zone = cell(1, nTimes);
+	year      = cell(1, nTimes);
+	yr        = cell(1, nTimes);
+	doy       = cell(1, nTimes);
+	month     = cell(1, nTimes);
+	cmonth    = cell(1, nTimes);
+	calmo     = cell(1, nTimes);
+	weekday   = cell(1, nTimes);
+	wkday     = cell(1, nTimes);
+	day       = cell(1, nTimes);
+	hour      = cell(1, nTimes);
+	hr        = cell(1, nTimes);
+	minute    = cell(1, nTimes);
+	second    = cell(1, nTimes);
+	decimal   = cell(1, nTimes);
+	milli     = cell(1, nTimes);
+	micro     = cell(1, nTimes);
+	nano      = cell(1, nTimes);
+	pico      = cell(1, nTimes);
+	am_pm     = cell(1, nTimes);
+	offset    = cell(1, nTimes);
+	time_zone = cell(1, nTimes);
 
 %------------------------------------%
 % Match Tokens to Time Parts         %
@@ -229,27 +227,27 @@ function time_parts = MrTimeParser_Breakdown(time, pattern)
 %------------------------------------%
 % Create a Structure                 %
 %------------------------------------%
-		time_parts = struct( 'year',      year,    ...
-			                   'yr',        yr,      ...
-			                   'doy',       doy,     ...
-			                   'month',     month,   ...
-			                   'cmonth',    cmonth,  ...
-			                   'calmo',     calmo,   ...
-			                   'weekday',   weekday, ...
-			                   'wkday',     wkday,   ...
-			                   'day',       day,     ...
-			                   'hour',      hour,    ...
-			                   'hr',        hr,      ...
-			                   'minute',    minute,  ...
-			                   'second',    second,  ...
-			                   'decimal',   decimal, ...
-			                   'milli',     milli,   ...
-			                   'micro',     micro,   ...
-			                   'nano',      nano,    ...
-			                   'pico',      pico,    ...
-			                   'am_pm',     am_pm,   ...
-			                   'offset',    offset,  ...
-			                   'time_zone', time_zone );
+	time_parts = struct( 'year',      year,    ...
+	                     'yr',        yr,      ...
+	                     'doy',       doy,     ...
+	                     'month',     month,   ...
+	                     'cmonth',    cmonth,  ...
+	                     'calmo',     calmo,   ...
+	                     'weekday',   weekday, ...
+	                     'wkday',     wkday,   ...
+	                     'day',       day,     ...
+	                     'hour',      hour,    ...
+	                     'hr',        hr,      ...
+	                     'minute',    minute,  ...
+	                     'second',    second,  ...
+	                     'decimal',   decimal, ...
+	                     'milli',     milli,   ...
+	                     'micro',     micro,   ...
+	                     'nano',      nano,    ...
+	                     'pico',      pico,    ...
+	                     'am_pm',     am_pm,   ...
+	                     'offset',    offset,  ...
+	                     'time_zone', time_zone );
 end
 
 
@@ -279,6 +277,8 @@ end
 % History:
 %   2015-04-06      Written by Matthew Argall
 %   2015-04-09      Incorporated %f, %1, %2, %3, and %4 tokens. - MRA
+%   2017-07-04      The %c token was not abbreviating moth names. If PATTERN has
+%                       characters after the final token, keep them. - MRA
 %
 function time = MrTimeParser_Compute(time_parts, pattern)
 
@@ -421,7 +421,7 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 				if isempty(calmo{1})
 					% Try to create it from the 2-digit month number
 					if ~isempty(time_parts(1).month)
-						calmo = MrMonthNumber2Name( { time_parts(:).month } );
+						calmo = MrMonthNumber2Name( { time_parts(:).month }, true );
 						
 					% Or the abbreviated calendar month name
 					elseif ~isempty(time_parts(1).calmo)
@@ -821,6 +821,13 @@ function time = MrTimeParser_Compute(time_parts, pattern)
 		
 		% Advance the current position.
 		curPos = iend(ii) + 1;
+
+	%------------------------------------%
+	% End of String                      %
+	%------------------------------------%
+		if ii == nTokens
+			time = strcat(time, pattern(curPos:end));
+		end
 	end
 	
 	% Return a cell array or char array

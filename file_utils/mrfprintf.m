@@ -14,6 +14,7 @@
 %     writes the data to a text file. fprintf uses the encoding scheme specified in
 %     the call to fopen. In place of a fileID returned by fopen, a character array
 %     that names the standard output to which you want the text printed. Options are:
+%       <Object>  -- A MrLogFile object that will add text to a log file via its AddText method
 %       'stderr'  -- Adds error to standard error
 %       'stdout'  -- Adds text to standard output
 %       'logerr'  -- Adds error to standard log file.
@@ -51,6 +52,7 @@
 %   2015-08-09      Written by Matthew Argall
 %   2016-04-01      Removed the "stdlog" and "logout" options. - MRA
 %   2016-10-01      Cell arrays may be given. - MRA
+%   2017-08-03      FileID can be a MrLogFile object. - MRA
 %
 function [] = mrfprintf( varargin )
 	%
@@ -183,6 +185,12 @@ function [] = mrfprintf( varargin )
 				fprintf( msg );
 			end
 		end
+	
+%------------------------------------%
+% MrLogFile object                   %
+%------------------------------------%
+	elseif isa(varargin{1}, 'MrLogFile')
+		varargin{1}.AddText( sprintf(varargin{2:end}) );
 
 %------------------------------------%
 % Regular fprinf                     %
