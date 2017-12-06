@@ -390,7 +390,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 				filesFound{ii} = newestVersion;
 				dirsFound{ii}  = newestDir;
 			end
-
+			
 	%------------------------------------%
 	% Filter by Version -- Specific      %
 	%------------------------------------%
@@ -563,6 +563,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 		%     'TStart' and 'TEnd'. Otherwise, just pick the file
 		%     associated with 'TStart.
 		%
+		
 		if closest && ~tf_fend && length(filesFound) > 1
 			%
 			% Find the file that starts closest to TSTART
@@ -601,7 +602,7 @@ function [filesFound, nFiles] = MrFile_Search(filename, varargin)
 			fStart     = fStart( iStart:iEnd );
 		end
 	end
-		
+
 %------------------------------------%
 % Directory                          %
 %------------------------------------%
